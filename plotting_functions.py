@@ -17,40 +17,55 @@ def load_data(data_path, verbose=True):
                 print(f"{key}: shape={arr.shape}")
 
         return (
-            data["positions"],
-            data["spikes"],
-            data["voltages"],
-            data["voltage_id"],
+            {key: data[key] for key in data.files}
         )
 
 
 #Function for creation of interactive plot
 def interactive_plot(
-    positions: np.ndarray,
-    spikes: np.ndarray,
-    voltages: np.ndarray,
-    voltage_id: np.ndarray,
+    data: dict,
     window: float = 0.5,
     save_video: bool = False,
     output_path: str = "spike_animation.mp4",
-    save_every_nth_frame: int = 2,
+    save_every_nth_frame: int = 20,
     verbose: bool = True,
     window_step: float = 0.1,
     window_min: float = 0.1,
     window_max: float = 20.0,
 ):
     #Input validation
-    if positions.ndim != 2 or positions.shape[1] != 2:
-        raise ValueError("positions must have shape (N, 2)")
+    required = {
+        "positions": {"ndim": 2, "ncols": 2},
+        "spikes": {"ndim": 2, "ncols": 2},
+        "voltages": {"ndim": 2},
+        "voltage_id": {"ndim": 1},
+    }
+    
+    for key, expected in required.items():
 
-    if spikes.ndim != 2 or spikes.shape[1] != 2:
-        raise ValueError("spikes must have shape (M, 2)")
+        if key not in data:
+            raise KeyError(f"Missing required key '{key}'.")
 
-    if voltages.ndim != 2:
-        raise ValueError("voltages must be a 2D array")
+        arr = data[key]
 
-    if voltage_id.ndim != 1:
-        raise ValueError("voltage_id must be a 1D array")
+        if not isinstance(arr, np.ndarray):
+            raise TypeError(f"'{key}' must be a NumPy array.")
+
+        if arr.ndim != expected["ndim"]:
+            raise ValueError(
+                f"'{key}' must be {expected['ndim']}D, got {arr.ndim}D."
+            )
+
+        if "ncols" in expected and arr.shape[1] != expected["ncols"]:
+            raise ValueError(
+                f"'{key}' must have shape (N, {expected['ncols']}), got {arr.shape}."
+            )
+
+    positions = data["positions"]
+    spikes = data["spikes"]
+    voltages = data["voltages"]
+    voltage_id = data["voltage_id"]    
+
 
     #Separating and sorting spike data
     spike_times = spikes[:, 0]
@@ -262,8 +277,7 @@ def interactive_plot(
 
 #Main function
 def main():
-    """Run the interactive visualization from the command line."""
-
+    
     parser = argparse.ArgumentParser(
         description="Visualize spiking neural network simulations."
     )
@@ -300,16 +314,13 @@ def main():
 
     args = parser.parse_args()
 
-    positions, spikes, voltages, voltage_id = load_data(
-        args.data_file,
-        verbose=not args.quiet,
+    data = load_data(
+    args.data_file,
+    verbose=not args.quiet,
     )
 
     interactive_plot(
-        positions,
-        spikes,
-        voltages,
-        voltage_id,
+        data,
         window=args.window,
         save_video=args.save_video,
         output_path=args.output,

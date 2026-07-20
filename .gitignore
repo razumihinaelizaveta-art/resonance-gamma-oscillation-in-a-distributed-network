@@ -1,0 +1,7 @@
+# Data and Video files
+*.npz
+*.mp4
+
+# Python cache files
+__pycache__/
+*.py[cod]
