@@ -7,7 +7,7 @@ from matplotlib.widgets import Slider, Button
 
 # Lоading data
 def load_data(data_path, verbose=True):
-    
+
     with np.load(data_path) as data:
 
         if verbose:
@@ -35,14 +35,17 @@ def interactive_plot(
     output_path: str = "spike_animation.mp4",
     save_every_nth_frame: int = 2,
     verbose: bool = True,
+    window_step: float = 0.1,
+    window_min: float = 0.1,
+    window_max: float = 20.0,
 ):
-    #Input validation 
+    #Input validation
     if positions.ndim != 2 or positions.shape[1] != 2:
         raise ValueError("positions must have shape (N, 2)")
 
     if spikes.ndim != 2 or spikes.shape[1] != 2:
         raise ValueError("spikes must have shape (M, 2)")
-    
+
     if voltages.ndim != 2:
         raise ValueError("voltages must be a 2D array")
 
@@ -62,35 +65,36 @@ def interactive_plot(
         print(f"Number of neurons: {N}")
         print(f"Simulation time range: {spike_times.min():.2f} - {spike_times.max():.2f} ms")
 
-
-    # Animation parameters
-
     t_start = 0.0
     t_end = spike_times.max()
 
+    # --- Function that (re)computes frames + active-neuron matrix for a given window size ---
+    def compute_frames(window_val):
+        frames = np.arange(t_start, t_end, window_val)
+        n_frames = len(frames)
 
-    frames = np.arange(t_start, t_end, window)
-    n_frames = len(frames)
+        active = np.zeros((n_frames, N), dtype=bool)
+        spike_ptr = 0
+        n_spikes = len(spike_times)
+
+        for f_idx, t in enumerate(frames):
+            t_next = t + window_val
+            while spike_ptr < n_spikes and spike_times[spike_ptr] < t_next:
+                if spike_times[spike_ptr] >= t:
+                    active[f_idx, spike_indices[spike_ptr]] = True
+                spike_ptr += 1
+
+        return frames, n_frames, active
+
+    # Mutable state holding the current window/frames/active — updated on key press
+    state = {}
+    state["window"] = window
+    state["frames"], state["n_frames"], state["active"] = compute_frames(window)
+
     if verbose:
-        print(f"Number of frames: {n_frames} (window = {window} ms)")
-    
-    # Active neurons precomputition 
-
-    active = np.zeros((n_frames, N), dtype=bool)
-
-    spike_ptr = 0
-    n_spikes = len(spike_times)
-
-    for f_idx, t in enumerate(frames):
-        t_next = t + window
-        while spike_ptr < n_spikes and spike_times[spike_ptr] < t_next:
-            if spike_times[spike_ptr] >= t:
-                active[f_idx, spike_indices[spike_ptr]] = True
-            spike_ptr += 1
-
+        print(f"Number of frames: {state['n_frames']} (window = {state['window']} ms)")
 
     # COLOR SETUP: gray = resting, red = spiking
-
     GRAY = np.array([0.7, 0.7, 0.7, 1.0])         # resting, regular neuron
     RED = np.array([1.0, 0.0, 0.0, 1.0])          # spiking, regular neuron
     DARK_GRAY = np.array([0.25, 0.25, 0.25, 1.0]) # resting, recorded neuron
@@ -101,15 +105,13 @@ def interactive_plot(
 
     def frame_colors(frame_idx):
         colors = np.tile(GRAY, (N, 1))
-        colors[is_recorded] = DARK_GRAY            
-        spiking = active[frame_idx]
-        colors[spiking & ~is_recorded] = RED       
-        colors[spiking & is_recorded] = YELLOW     
+        colors[is_recorded] = DARK_GRAY
+        spiking = state["active"][frame_idx]
+        colors[spiking & ~is_recorded] = RED
+        colors[spiking & is_recorded] = YELLOW
         return colors
 
-
-    # Creating figure 
-
+    # Creating figure
     fig = plt.figure(figsize=(14, 8))
 
     gs = fig.add_gridspec(len(voltage_id), 2, width_ratios=[1.1, 1],
@@ -130,7 +132,7 @@ def interactive_plot(
     ax.set_aspect("equal")
     ax.set_xlim(positions[:, 0].min() - 1, positions[:, 0].max() + 1)
     ax.set_ylim(positions[:, 1].min() - 1, positions[:, 1].max() + 1)
-    title = ax.set_title(f"t = {frames[0]:.2f} ms")
+    title = ax.set_title(f"t = {state['frames'][0]:.2f} ms   (window = {state['window']:.2f} ms)")
 
     # --- Right panel: voltage traces, one subplot per recorded neuron ---
     time_v = voltages[:, 0]  # ms
@@ -143,27 +145,23 @@ def interactive_plot(
         ax_v.set_ylabel("V (mV)")
         ax_v.set_title(f"Neuron #{neuron_id}", fontsize=10, loc='right')
         ax_v.grid(alpha=0.3)
-        vline = ax_v.axvline(frames[0], color=YELLOW, linewidth=1.2)
+        vline = ax_v.axvline(state["frames"][0], color=YELLOW, linewidth=1.2)
         volt_axes.append(ax_v)
         vlines.append(vline)
     volt_axes[-1].set_xlabel("Time (ms)")
-    #fig.suptitle("Left: network raster   |   Right: voltage traces") #Title at the top of the graph
-
 
     def draw_frame(idx):
         idx = int(idx)
-        t = frames[idx]
+        t = state["frames"][idx]
         scat.set_color(frame_colors(idx))
-        title.set_text(f"t = {t:.2f} ms")
+        title.set_text(f"t = {t:.2f} ms   (window = {state['window']:.2f} ms)")
         for vline in vlines:
             vline.set_xdata([t, t])
         fig.canvas.draw_idle()
 
-
     #Interaction creation
-
     ax_slider = plt.axes([0.15, 0.10, 0.55, 0.03])
-    slider = Slider(ax_slider, "Time", 0, n_frames - 1,
+    slider = Slider(ax_slider, "Time", 0, state["n_frames"] - 1,
                     valinit=0, valstep=1)
 
     ax_button = plt.axes([0.80, 0.09, 0.10, 0.05])
@@ -185,39 +183,65 @@ def interactive_plot(
 
     def timer_callback():
         if is_playing[0]:
-            next_idx = (slider.val + 1) % n_frames
+            next_idx = (slider.val + 1) % state["n_frames"]
             slider.set_val(next_idx)
 
     timer.add_callback(timer_callback)
     timer.start()
 
+    # --- Changing the timestep (window) on the fly ---
+    def change_window(new_window):
+        new_window = min(max(new_window, window_min), window_max)
+        if new_window == state["window"]:
+            return  # already at the limit, nothing to do
+
+        # remember current time (ms), not just frame index, to stay at roughly the same moment
+        current_time = state["frames"][int(slider.val)]
+
+        state["window"] = new_window
+        state["frames"], state["n_frames"], state["active"] = compute_frames(new_window)
+
+        # find the frame closest to the previous current_time
+        new_idx = int(np.argmin(np.abs(state["frames"] - current_time)))
+
+        # update slider range to match the new number of frames
+        slider.valmax = state["n_frames"] - 1
+        slider.ax.set_xlim(slider.valmin, slider.valmax)
+
+        slider.set_val(new_idx)  # triggers on_slider -> draw_frame
+        if verbose:
+            print(f"Window changed to {new_window:.2f} ms ({state['n_frames']} frames)")
+
     def on_key(event):
         current_idx = int(slider.val)
 
         if event.key == "right":
-            slider.set_val(min(current_idx + 1, n_frames - 1))
+            slider.set_val(min(current_idx + 1, state["n_frames"] - 1))
         elif event.key == "left":
             slider.set_val(max(current_idx - 1, 0))
         elif event.key == "up":
-            slider.set_val(min(current_idx + 10, n_frames - 1))
+            slider.set_val(min(current_idx + 10, state["n_frames"] - 1))
         elif event.key == "down":
             slider.set_val(max(current_idx - 10, 0))
         elif event.key == " ":
             on_button(event)
+        elif event.key in ("shift++", "shift+=", "+", "="):
+            change_window(state["window"] + window_step)
+        elif event.key in ("shift+-", "shift+_", "-", "_"):
+            change_window(state["window"] - window_step)
 
     fig.canvas.mpl_connect("key_press_event", on_key)
 
     draw_frame(0)
-    
+
     #Saving animation
     if save_video:
 
-        export_frame_indices = np.arange(0, n_frames, save_every_nth_frame)
+        export_frame_indices = np.arange(0, state["n_frames"], save_every_nth_frame)
 
         def update(idx):
-            scat.set_color(frame_colors(idx))
-            title.set_text(f"t = {frames[idx]:.2f} ms")
-            return scat, title
+            draw_frame(idx)
+            return scat, title, *vlines
 
         ani = animation.FuncAnimation(
             fig,
@@ -236,7 +260,7 @@ def interactive_plot(
     return fig
 
 
-#Main function 
+#Main function
 def main():
     """Run the interactive visualization from the command line."""
 
