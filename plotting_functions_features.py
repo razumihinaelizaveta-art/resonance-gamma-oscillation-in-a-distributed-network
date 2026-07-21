@@ -76,7 +76,7 @@ def interactive_plot(
     vmax=features.max()
     )
 
-    cmap = plt.get_cmap("rainbow")      
+    cmap = plt.get_cmap("Greys")      
     feature_edgecolors = cmap(norm(features))
 
 
