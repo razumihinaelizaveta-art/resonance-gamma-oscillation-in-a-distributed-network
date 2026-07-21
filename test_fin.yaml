@@ -1,0 +1,108 @@
+geometry:
+    # brain area to simulate neurons in
+    L: 150
+    H: 150
+
+
+populations:
+    pvbc:
+        dencity: 3556e-6*1.5
+        num_neurons: L*H*dencity   # formula to compute dencity, however number also may be used
+        
+        # If you want to add some constant, write it here in the format const: value (or formula)
+        const:
+            C: 12*pF
+            Eh: -43*mV
+            EK: -70*mV
+            El: -65*mV
+            ENa: 50*mV
+            Esyn: -75*mV
+            nf: 0.85
+            zss: 0.5
+            temp: 22.
+            q10: 3. ** ((temp - 22) / 10.)
+            frac: 0.0
+            qt: 4.5 ** ((temp - 33.) / 10.)
+            norm_syn: 1*msiemens
+            tau_syn_a: 1
+            tau_syn_b: 5
+            gnabar: 1000*nS
+            gkhtbar: 150*nS
+            gkltbar: 0*nS
+            gkabar: 0*nS
+            ghbar: 0.5*nS
+            gbarno: 0*nS
+            gl: 2*nS
+        
+        # If you want to add some equation, write it here, but be sure after last equation new line is present
+        equations:
+            eqs_na: |
+                ina = gnabar*m**3*h*(ENa-v) : amp
+                dm/dt=q10*(minf-m)/mtau : 1
+                dh/dt=q10*(hinf-h)/htau : 1
+                minf = 1./(1+exp(-(vu + 38.) / 7.)) : 1
+                hinf = 1./(1+exp((vu + 65.) / 6.)) : 1
+                mtau =  ((10. / (5*exp((vu+60.) / 18.) + 36.*exp(-(vu+60.) / 25.))) + 0.04)*ms : second
+                htau =  ((100. / (7*exp((vu+60.) / 11.) + 10.*exp(-(vu+60.) / 25.))) + 0.6)*ms : second
+
+            eqs_kht: |
+                ikht = gkhtbar*(nf*n**2 + (1-nf)*p)*(EK-v) : amp
+                dn/dt=q10*(ninf-n)/ntau : 1
+                dp/dt=q10*(pinf-p)/ptau : 1
+                ninf =   (1 + exp(-(vu + 15) / 5.))**-0.5 : 1
+                pinf =  1. / (1 + exp(-(vu + 23) / 6.)) : 1
+                ntau =  ((100. / (11*exp((vu+60) / 24.) + 21*exp(-(vu+60) / 23.))) + 0.7)*ms : second
+                ptau = ((100. / (4*exp((vu+60) / 32.) + 5*exp(-(vu+60) / 22.))) + 5)*ms : second
+
+            eqs_leak: |
+                ileak = gl*(El-v) : amp
+
+            eqs_syn: |
+                isyn = norm_syn*(synb-syna)*(Esyn-v) : amp
+                dsyna/dt = -syna/tau_syn_a/ms : 1
+                dsynb/dt = -synb/tau_syn_b/ms : 1
+
+            eqs: |
+                dv/dt = (ileak + ina + ikht  + I + isyn)/C : volt
+                vu = v/mV : 1  # unitless v
+                I : amp
+
+            # gathering all equations together
+            general_equ: eqs + eqs_leak + eqs_na + eqs_kht + eqs_syn
+
+        specs:
+            method: exponential_euler
+            threshold: v>0*mV
+            refractory: v>-20*mV
+        initials:
+            v: (-52. + rnd.randn(num_neurons)*40)*mV
+            I: 15*pA
+                
+                           
+synapses:
+    pv2pv:
+        source: pvbc     # this is the name of predifined neuron group in this file
+        target: pvbc     # this is the name of predifined neuron group in this file
+        general:
+            model: 'gsyn:1'
+            on_pre: |
+                    syna_post += gsyn
+                    synb_post += gsyn     
+        geometry:
+           type: 'lognormal'
+           mu: 5.0063
+           sigma: 0.5630
+        conductance:
+            type: 'exponential'
+            max: 0.1
+            sigma: 70
+        delay:
+            type: 'linear'
+            min: 0.1
+            k:   50
+        
+    #return list of pre and postsynaptic connections
+
+                    
+                    
+            
