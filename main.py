@@ -3,6 +3,7 @@ from numpy import *
 from matplotlib.pyplot import *
 from brian2 import *
 from numpy import random as rnd
+from connectivity import connectivity
 
 class Population:
     """main class to store for all yaml processing"""
@@ -125,18 +126,18 @@ class Population:
 class Syns:
     """instance for working with synapses"""
 
-    def __init__(self, file, neurons, connection_name):
+    def __init__(self, desc:dict, neurons, connection_name):
         """file - part of .yaml to work with synapses
            neurons - dict with all instances of populations from .yaml
            connection_name - specific name of syn_to_syn connections from .yaml"""
         
-        self.file = file
+        self.file = desc
         self.name = connection_name
 
         self.namespace = globals().copy()             # get access to the units in the global space
 
-        source = file['source'] # just a name of population
-        target = file['target'] # just a name of population
+        source = self.file['source'] # just a name of population
+        target = self.file['target'] # just a name of population
         
         self.source = neurons[source]  # which population of neurons to take from .yaml
         self.target = neurons[target]  # which population of neurons to take from .yaml
@@ -154,33 +155,52 @@ class Syns:
 
     def set_geometry(self):
         """creates the geometry of synapses"""
-        
-        pre = self.source.num_neurons
-        post = self.target.num_neurons
 
-        self.connectivity = array([
-            [source, target]
-            for source in range(pre)
-            for target in range(post)
-            if source != target and rnd.rand() < 0.25], dtype=int)
+        self.connectivity = connectivity(
+            self.name,
+            self.file,
+            self.source.coord_grid,
+            self.target.coord_grid,
+            self.source.L,
+            self.source.H
+                                        )
 
     def connect(self):
         """connects synapses"""
-
-        self.synapses.connect(i=self.connectivity[:,0].flatten().tolist(), j=self.connectivity[:,1].flatten().tolist())
         
-        if self.file['connect']:
-            for key, value in self.file['connect'].items():
-                if isinstance(value, str):
-                    value = eval(value, self.namespace)
-                    setattr(self.synapses, key, value)
-                    self.namespace[key] = value
-                else:
-                    setattr(self.synapses, key, value)
-                    self.namespace[key] = value
+        presynapses = [
+            pre
+            for pre, post, d, gsyn, delay in self.connectivity
+                      ]
+        
+        postsynapses = [
+            post
+            for pre,post,d,gsyn,delay in self.connectivity
+                       ]
+        self.synapses.connect(i=presynapses, j=postsynapses)
+        
+        self.synapses.gsyn = [
+            gsyn
+            for pre,post,d,gsyn,delay in self.connectivity
+                             ]
+        
+        self.synapses.delay = [
+            delay*ms
+            for pre,post,d,gsyn,delay in self.connectivity
+                              ]
+        
+        # if self.file['connect']:
+        #     for key, value in self.file['connect'].items():
+        #         if isinstance(value, str):
+        #             value = eval(value, self.namespace)
+        #             setattr(self.synapses, key, value)
+        #             self.namespace[key] = value
+        #         else:
+        #             setattr(self.synapses, key, value)
+        #             self.namespace[key] = value
 
 
-with open('test.yaml', 'r') as file:
+with open('test_fin.yaml', 'r') as file:
     f = yaml.safe_load(file)   
     
 pops = {}
@@ -192,5 +212,38 @@ for pop in f['populations']:
     #test = Population(f['populations'][pop], population=pop, geometry=geometry)
 
 for syn in f['synapses']:
-    syns[syn] = Syns(f['synapses'][syn], neurons=pops, connection_name=syn)
+    syns[syn] = Syns(f['synapses'][syn], pops, connection_name=syn)
     #test = Syns(f['synapses'][syn], neurons=pops, connection_name=syn)
+
+
+
+import brian2 as b2
+
+# clears any ghost objects left over from previous cell runs
+b2.device.reinit()
+b2.start_scope()
+
+# extract brian2 objects from your instances
+active_neurons = [pop_obj.neurons for pop_obj in pops.values()]
+active_synapses = [syn_obj.synapses for syn_obj in syns.values()]
+
+# build the network containing only active objects
+M = b2.StateMonitor(pops['pvbc'].neurons, 'v', record=list(range(30)))
+S = b2.SpikeMonitor(pops['pvbc'].neurons)
+
+net = b2.Network(active_neurons, active_synapses, M, S)
+
+# run the explicit network instead of the global magic system
+net.run(500 * b2.ms, report='text')
+
+figure(figsize=(12,6))
+subplot(121)
+xlim(0,500)
+xlabel('t (ms)')
+plot(S.t/ms,S.i,'k.')
+subplot(122)
+for i in range(30):
+    plot(M.t / ms, M[i].v / mV+10*i)
+xlabel('t (ms)')
+ylabel('v (mV)')
+show()
