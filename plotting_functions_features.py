@@ -67,7 +67,9 @@ def interactive_plot(
     spikes = data["spikes"]
     voltages = data["voltages"]
     voltage_id = data["voltage_id"]
-          
+    features = data['features'] 
+
+    print(features[:10])        
 
 
     #Separating and sorting spike data
