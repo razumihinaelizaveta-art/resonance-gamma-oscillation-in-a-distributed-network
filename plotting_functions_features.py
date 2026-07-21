@@ -1,6 +1,7 @@
 #Downloading libraries
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import matplotlib.animation as animation
 import argparse
 from matplotlib.widgets import Slider, Button
@@ -24,7 +25,7 @@ def load_data(data_path, verbose=True):
 #Function for creation of interactive plot
 def interactive_plot(
     data: dict, #input data
-    window: float = 0.5, #time resolution of a single frame
+    window: float = 1.0, #time resolution of a single frame
     save_video: bool = False, #video saving mode
     output_path: str = "spike_animation.mp4", 
     save_every_nth_frame: int = 20, #a step between saved frames in a video
@@ -69,7 +70,14 @@ def interactive_plot(
     voltage_id = data["voltage_id"]
     features = data['features'] 
 
-    print(features[:10])        
+    #Normalize features   
+    norm = mpl.colors.Normalize(
+    vmin=features.min(),
+    vmax=features.max()
+    )
+
+    cmap = plt.get_cmap("rainbow")      
+    feature_edgecolors = cmap(norm(features))
 
 
     #Separating and sorting spike data
@@ -116,7 +124,7 @@ def interactive_plot(
 
     # COLOR SETUP: gray = resting, red = spiking
     GRAY = np.array([0.7, 0.7, 0.7, 1.0])         # resting, regular neuron
-    RED = np.array([1.0, 0.0, 0.0, 1.0])          # spiking, regular neuron
+    RED = np.array([0.86, 0.08, 0.24, 1.0])          # spiking, regular neuron
     DARK_GRAY = np.array([0.25, 0.25, 0.25, 1.0]) # resting, recorded neuron
     YELLOW = np.array([1.0, 0.85, 0.0, 1.0])      # spiking, recorded neuron
 
@@ -143,9 +151,9 @@ def interactive_plot(
     scat = ax.scatter(
         positions[:, 0], positions[:, 1],
         c=frame_colors(0),
+        edgecolors=feature_edgecolors, 
         s=30,
-        edgecolors='k',
-        linewidths=0.2
+        linewidths=1.0
     )
     ax.set_xlabel("x position")
     ax.set_ylabel("y position")
@@ -153,6 +161,20 @@ def interactive_plot(
     ax.set_xlim(positions[:, 0].min() - 1, positions[:, 0].max() + 1)
     ax.set_ylim(positions[:, 1].min() - 1, positions[:, 1].max() + 1)
     title = ax.set_title(f"t = {state['frames'][0]:.2f} ms   (window = {state['window']:.2f} ms)")
+
+    sm = plt.cm.ScalarMappable(
+        cmap=cmap,
+        norm=norm
+    )
+    sm.set_array([])
+
+    cbar = fig.colorbar(
+        sm,
+        ax=ax,
+        pad=0.02
+    )
+
+    cbar.set_label("Neuron feature")
 
     # Right panel: voltage traces, one subplot per recorded neuron 
     time_v = voltages[:, 0]  # ms
@@ -173,7 +195,7 @@ def interactive_plot(
     def draw_frame(idx):
         idx = int(idx)
         t = state["frames"][idx]
-        scat.set_color(frame_colors(idx))
+        scat.set_facecolor(frame_colors(idx))
         title.set_text(f"t = {t:.2f} ms   (window = {state['window']:.2f} ms)")
         for vline in vlines:
             vline.set_xdata([t, t])
@@ -296,7 +318,7 @@ def main():
     parser.add_argument(
         "--window",
         type=float,
-        default=0.5,
+        default=1.0,
         help="Animation window size in milliseconds.",
     )
 
