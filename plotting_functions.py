@@ -5,7 +5,7 @@ import matplotlib.animation as animation
 import argparse
 from matplotlib.widgets import Slider, Button
 
-# Lоading data
+# Lоading data from .npz file
 def load_data(data_path, verbose=True):
 
     with np.load(data_path) as data:
@@ -23,16 +23,17 @@ def load_data(data_path, verbose=True):
 
 #Function for creation of interactive plot
 def interactive_plot(
-    data: dict,
-    window: float = 0.5,
-    save_video: bool = False,
-    output_path: str = "spike_animation.mp4",
-    save_every_nth_frame: int = 20,
-    verbose: bool = True,
-    window_step: float = 0.1,
-    window_min: float = 0.1,
-    window_max: float = 20.0,
+    data: dict, #input data
+    window: float = 0.5, #time resolution of a single frame
+    save_video: bool = False, #video saving mode
+    output_path: str = "spike_animation.mp4", 
+    save_every_nth_frame: int = 20, #a step between saved frames in a video
+    verbose: bool = True, 
+    window_step: float = 0.1, #how much the window size changes when you press the + or - keys (adjustment increment)
+    window_min: float = 0.1, #min adjustment increment
+    window_max: float = 20.0, #max adjustment increment
 ):
+    
     #Input validation
     required = {
         "positions": {"ndim": 2, "ncols": 2},
@@ -60,11 +61,15 @@ def interactive_plot(
             raise ValueError(
                 f"'{key}' must have shape (N, {expected['ncols']}), got {arr.shape}."
             )
-
+        
+    #Input unpacking
     positions = data["positions"]
     spikes = data["spikes"]
     voltages = data["voltages"]
-    voltage_id = data["voltage_id"]    
+    voltage_id = data["voltage_id"]
+    features = data['features'] 
+
+    print(features[:10])        
 
 
     #Separating and sorting spike data
@@ -83,7 +88,7 @@ def interactive_plot(
     t_start = 0.0
     t_end = spike_times.max()
 
-    # --- Function that (re)computes frames + active-neuron matrix for a given window size ---
+    # Function that (re)computes frames + active-neuron matrix for a given window size
     def compute_frames(window_val):
         frames = np.arange(t_start, t_end, window_val)
         n_frames = len(frames)
@@ -133,7 +138,7 @@ def interactive_plot(
                         left=0.06, right=0.97, top=0.92, bottom=0.22,
                         wspace=0.25, hspace=0.4)
 
-    # --- Left panel: spike raster (spans all rows) ---
+    # Left panel: spike change on neuron coords
     ax = fig.add_subplot(gs[:, 0])
     scat = ax.scatter(
         positions[:, 0], positions[:, 1],
@@ -149,7 +154,7 @@ def interactive_plot(
     ax.set_ylim(positions[:, 1].min() - 1, positions[:, 1].max() + 1)
     title = ax.set_title(f"t = {state['frames'][0]:.2f} ms   (window = {state['window']:.2f} ms)")
 
-    # --- Right panel: voltage traces, one subplot per recorded neuron ---
+    # Right panel: voltage traces, one subplot per recorded neuron 
     time_v = voltages[:, 0]  # ms
     volt_axes = []
     vlines = []
@@ -204,7 +209,7 @@ def interactive_plot(
     timer.add_callback(timer_callback)
     timer.start()
 
-    # --- Changing the timestep (window) on the fly ---
+    # Changing the timestep 
     def change_window(new_window):
         new_window = min(max(new_window, window_min), window_max)
         if new_window == state["window"]:
@@ -227,6 +232,7 @@ def interactive_plot(
         if verbose:
             print(f"Window changed to {new_window:.2f} ms ({state['n_frames']} frames)")
 
+    #Key function creation
     def on_key(event):
         current_idx = int(slider.val)
 
