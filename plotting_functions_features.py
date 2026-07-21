@@ -76,8 +76,8 @@ def interactive_plot(
     vmax=features.max()
     )
 
-    cmap = plt.get_cmap("Greys")      
-    feature_edgecolors = cmap(norm(features))
+    cmap = plt.get_cmap("cool")      
+    feature_colors = cmap(norm(features))
 
 
     #Separating and sorting spike data
@@ -123,20 +123,28 @@ def interactive_plot(
         print(f"Number of frames: {state['n_frames']} (window = {state['window']} ms)")
 
     # COLOR SETUP: gray = resting, red = spiking
-    GRAY = np.array([0.7, 0.7, 0.7, 1.0])         # resting, regular neuron
-    RED = np.array([0.86, 0.08, 0.24, 1.0])          # spiking, regular neuron
-    DARK_GRAY = np.array([0.25, 0.25, 0.25, 1.0]) # resting, recorded neuron
-    YELLOW = np.array([1.0, 0.85, 0.0, 1.0])      # spiking, recorded neuron
+    WHITE = np.array([1.0, 1.0, 1.0, 1.0])
+
+    DARK_GRAY = np.array([0.25, 0.25, 0.25, 1.0])   # recorded neuron at rest
+    YELLOW    = np.array([1.0, 0.85, 0.0, 1.0])     # recorded neuron spiking
 
     is_recorded = np.zeros(N, dtype=bool)
     is_recorded[voltage_id.astype(int)] = True
 
-    def frame_colors(frame_idx):
-        colors = np.tile(GRAY, (N, 1))
+    def frame_facecolors(frame_idx):
+        colors = feature_colors.copy()
+
+        # Recorded neurons are dark gray while resting
         colors[is_recorded] = DARK_GRAY
+
         spiking = state["active"][frame_idx]
-        colors[spiking & ~is_recorded] = RED
+
+        # Regular neurons flash white
+        colors[spiking & ~is_recorded] = WHITE
+
+        # Recorded neurons flash yellow
         colors[spiking & is_recorded] = YELLOW
+
         return colors
 
     # Creating figure
@@ -148,12 +156,14 @@ def interactive_plot(
 
     # Left panel: spike change on neuron coords
     ax = fig.add_subplot(gs[:, 0])
+    ax.set_facecolor("black")
     scat = ax.scatter(
-        positions[:, 0], positions[:, 1],
-        c=frame_colors(0),
-        edgecolors=feature_edgecolors, 
+        positions[:, 0], 
+        positions[:, 1],
+        facecolors=frame_facecolors(0),
+        edgecolors=feature_colors,
+        linewidths=0.8,
         s=30,
-        linewidths=1.0
     )
     ax.set_xlabel("x position")
     ax.set_ylabel("y position")
@@ -195,7 +205,7 @@ def interactive_plot(
     def draw_frame(idx):
         idx = int(idx)
         t = state["frames"][idx]
-        scat.set_facecolor(frame_colors(idx))
+        scat.set_facecolors(frame_facecolors(idx))
         title.set_text(f"t = {t:.2f} ms   (window = {state['window']:.2f} ms)")
         for vline in vlines:
             vline.set_xdata([t, t])
