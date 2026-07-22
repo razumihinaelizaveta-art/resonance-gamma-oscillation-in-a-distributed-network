@@ -1,0 +1,141 @@
+geometry:
+    # brain area to simulate neurons in
+    L: 150
+    H: 150
+
+
+populations:
+    pvbc:
+        dencity: 3600e-6*1.5
+        num_neurons: L*H*dencity   # formula to compute dencity, however number also may be used
+        
+        # If you want to add some constant, write it here in the format const: value (or formula)
+        const:
+            eps: 1.e-9*mV
+            
+            FactorScaleKV3: 1
+
+            norm_syn: 1*msiemens
+            tau_syn_a: 0.8
+            tau_syn_b: 2
+
+            ENa: 50*mV
+            EK: -90*mV
+            Esyn: -75*mV
+
+            km2: 0.1
+            kh1: 0.012
+            kh2: 0.2
+            kn1: 1.0*FactorScaleKV3
+            kn2: 0.001*FactorScaleKV3
+            ka2: 0.02
+
+            sigm1: 4.0*mV
+            sigm2: -13.0*mV
+
+            sigh1: -20.0*mV
+            sigh2: 3.5*mV
+
+            sign1: 12.0*mV
+            sign2: -8.5*mV
+
+            siga1: 12.0*mV
+            siga2: -80.0*mV
+
+            gL: 14.705184211981187*nS
+            EL: -71.97508650437244*mV
+            taum: 5.222681687884308310*ms
+            Rin: 1.0e3/(gL/nS)*Mohm
+            Cap: taum/Rin
+
+            gNa: 16804.9678*nS
+            gKv3: 631.700393*nS
+            gKv1: 59.0431313*nS
+
+            thm1: -52.9951244*mV
+            thh2: -55.7111801*mV
+            thn1: 5.90077045*mV
+            tha1: 51.3553887*mV
+        # If you want to add some equation, write it here, but be sure after last equation new line is present
+        equations:
+            gat_vars: |
+                alpham = 1.0/exprel(-(v-thm1-eps)/sigm1)/ms : Hz
+                betam = km2*exp(v/sigm2)/ms : Hz
+                dm/dt = alpham*(1-m) - betam*m : 1
+                
+                alphah = kh1*exp(v/sigh1)/ms : Hz
+                betah = kh2*(sigh2/mV)/exprel(-(v-thh2)/sigh2)/ms : Hz
+                dh/dt = alphah*(1-h) - betah*h : 1
+                
+                alphan = kn1*(sign1/mV)/exprel(-(v-thn1)/sign1)/ms : Hz
+                betan = kn2*exp(v/sign2)/ms : Hz
+                dn/dt = alphan*(1-n) - betan*n : 1
+                
+                alphaa = (siga1/mV)/exprel(-(v-tha1)/siga1)/ms : Hz
+                betaa = ka2*exp(v/siga2)/ms : Hz
+                da/dt = alphaa*(1-a) - betaa*a : 1
+                
+                INa = -gNa*m**3*h*(v-ENa) : ampere
+                IKv3 = -gKv3*n**4*(v-EK) : ampere
+                IKv1 = -gKv1*a**4*(v-EK) : ampere
+                IL   = -gL*(v-EL) : ampere
+
+            ext_eqs: |
+                I : ampere 
+
+            eqs_syn: |
+                Isyn = norm_syn*(synb-syna)*(Esyn-v) : amp
+                dsyna/dt = -syna/tau_syn_a/ms : 1
+                dsynb/dt = -synb/tau_syn_b/ms : 1
+
+            volt_eqs: |
+                dv/dt = (  INa + IKv1 + IKv3 + IL + I + Isyn )/Cap : volt 
+
+            # gathering all equations together
+            general_equ: volt_eqs + gat_vars + ext_eqs +  eqs_syn
+
+        specs:
+            method: exponential_euler
+            threshold: v>-30*mV
+            refractory: v>=-30*mV
+        initials:
+            v: EL + rnd.random(num_neurons)*10*mV
+            m: 0.01
+            h: 0.99
+            n: 0.01
+            a: 0.01
+            I: 229*pA # minimal applied current to generate PIR
+
+                           
+synapses:
+    pv2pv:
+        source: 'pvbc'     # this is the name of predifined neuron group in this file
+        target: 'pvbc'     # this is the name of predifined neuron group in this file
+        general:
+            model: 'gsyn:1'
+            on_pre: |
+                    syna_post += gsyn
+                    synb_post += gsyn     
+        geometry:
+           type: 'lognormal'
+           mu: 5.0063
+           sigma: 0.5630
+        conductance:
+            type: 'exponential'
+            max: 0.00005
+            sigma: 70
+        delay:
+            type: 'linear'
+            min: 0.1
+            k:   50
+        
+#recorder:
+    #spikes:
+        #populations: ['pvbc']
+    #states:
+        #voltages :
+            #population : 'pvbc'
+            #ids        : rnd.randint(0,num_neurons,10)
+                    
+                    
+            
