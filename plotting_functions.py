@@ -79,6 +79,8 @@ def interactive_plot(
     spike_indices = spike_indices[order]
 
     N = positions.shape[0]
+    marker_size = np.clip(1500 / np.sqrt(N), 2, 30) #marker size scales with network size
+    
     if verbose:
         print(f"Number of neurons: {N}")
         print(f"Simulation time range: {spike_times.min():.2f} - {spike_times.max():.2f} ms")
@@ -105,9 +107,13 @@ def interactive_plot(
         return frames, n_frames, active
 
     # Mutable state holding the current window/frames/active — updated on key press
-    state = {}
-    state["window"] = window
+    state = {
+    "window": window,
+    "marker_size": marker_size,
+    }
+
     state["frames"], state["n_frames"], state["active"] = compute_frames(window)
+    
 
     if verbose:
         print(f"Number of frames: {state['n_frames']} (window = {state['window']} ms)")
@@ -130,6 +136,7 @@ def interactive_plot(
         return colors
 
     # Creating figure
+    
     fig = plt.figure(figsize=(14, 8))
 
     gs = fig.add_gridspec(len(voltage_id), 2, width_ratios=[1.1, 1],
@@ -141,7 +148,7 @@ def interactive_plot(
     scat = ax.scatter(
         positions[:, 0], positions[:, 1],
         c=frame_colors(0),
-        s=30,
+        s=state["marker_size"],
         edgecolors='k',
         linewidths=0.2
     )
@@ -207,6 +214,12 @@ def interactive_plot(
     timer.add_callback(timer_callback)
     timer.start()
 
+    def change_marker_size(factor):
+        new_size = np.clip(state["marker_size"] * factor, 1, 100)
+        state["marker_size"] = new_size
+        scat.set_sizes(np.full(N, new_size))
+        fig.canvas.draw_idle()
+
     # Changing the timestep 
     def change_window(new_window):
         new_window = min(max(new_window, window_min), window_max)
@@ -248,6 +261,10 @@ def interactive_plot(
             change_window(state["window"] + window_step)
         elif event.key in ("shift+-", "shift+_", "-", "_"):
             change_window(state["window"] - window_step)
+        elif event.key == ">":
+            change_marker_size(1.2)
+        elif event.key == "<":
+            change_marker_size(1/1.2)
 
     fig.canvas.mpl_connect("key_press_event", on_key)
 
