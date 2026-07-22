@@ -215,8 +215,9 @@ class Syns:
         #             setattr(self.synapses, key, value)
         #             self.namespace[key] = value
 
-parser = argparse.ArgumentParser(description=".yaml file to extract model from")
+parser = argparse.ArgumentParser(description="Give script a file and get output from it")
 parser.add_argument("filename", type=str, help="The name or path of the YAML file to load")
+parser.add_argument("output", type=str, help="The name of the .npz file to store data in")
 args = parser.parse_args()
 
 with open(args.filename, 'r') as file:
@@ -256,7 +257,7 @@ net = b2.Network(active_neurons, active_synapses, M, S)
 net.run(500 * b2.ms, report='text')
 
 
-np.savez("simulation.npz",
+np.savez(args.output,
     positions  = pops['pvbc'].coord_grid,
     spikes     = np.column_stack((S.t/ms, S.i)),
     voltages   = np.column_stack([M.t/ms]+[ _x_ for _x_ in M.v]),
