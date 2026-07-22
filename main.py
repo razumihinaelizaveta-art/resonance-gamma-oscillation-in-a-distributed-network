@@ -162,9 +162,24 @@ class Syns:
             self.source.coord_grid,
             self.target.coord_grid,
             self.source.L,
-            self.source.H
-                                        )
-
+            self.source.H)
+        
+        #DB>>
+        stats = []
+        connections = np.array(self.connectivity)
+        
+        for post in range(self.target.num_neurons):
+            ids, = np.where(connections[:,1].astype(int) == post)
+            stats.append([
+                ids.shape[0],
+                [np.amin(connections[ids,3]),np.mean(connections[ids,3]),np.amax(connections[ids,3])],
+                [np.amin(connections[ids,4]),np.mean(connections[ids,4]),np.amax(connections[ids,4])]
+            ])
+            print(f'Postsynapric neuron {post}:')
+            print(f'    number of connections: {stats[-1][0]}')
+            print(f'    synaptic conductance : {stats[-1][1]}')
+            print(f'    synaptic delays      : {stats[-1][2]}')
+        #<<DB
     def connect(self):
         """connects synapses"""
         
@@ -218,7 +233,7 @@ for syn in f['synapses']:
 
 
 import brian2 as b2
-
+b2.defaultclock.dt = 0.05*b2.ms
 # clears any ghost objects left over from previous cell runs
 b2.device.reinit()
 b2.start_scope()
