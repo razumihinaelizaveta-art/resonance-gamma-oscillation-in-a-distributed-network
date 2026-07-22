@@ -4,6 +4,7 @@ from matplotlib.pyplot import *
 from brian2 import *
 from numpy import random as rnd
 from connectivity import connectivity
+import argparse
 
 class Population:
     """main class to store for all yaml processing"""
@@ -214,8 +215,11 @@ class Syns:
         #             setattr(self.synapses, key, value)
         #             self.namespace[key] = value
 
+parser = argparse.ArgumentParser(description=".yaml file to extract model from")
+parser.add_argument("filename", type=str, help="The name or path of the YAML file to load")
+args = parser.parse_args()
 
-with open('test_fin.yaml', 'r') as file:
+with open(args.filename, 'r') as file:
     f = yaml.safe_load(file)   
     
 pops = {}
@@ -250,6 +254,15 @@ net = b2.Network(active_neurons, active_synapses, M, S)
 
 # run the explicit network instead of the global magic system
 net.run(500 * b2.ms, report='text')
+
+
+np.savez("simulation.npz",
+    positions  = pops['pvbc'].coord_grid,
+    spikes     = np.column_stack((S.t/ms, S.i)),
+    voltages   = np.column_stack([M.t/ms]+[ _x_ for _x_ in M.v]),
+    voltage_id = np.array(list(range(30)),dtype=int),
+    # features   = n.I0
+)
 
 figure(figsize=(12,6))
 subplot(121)
