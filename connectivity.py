@@ -52,7 +52,7 @@ def distances(
     return output.flatten()
     
     
-def chack_requred_names(desc:dic,names:list,host:str):
+def chack_requred_names(desc:dict,names:list,host:str):
     for name in names:
         if not name in desc:
             raise RuntimeError(f"There is no {name} in the description for {host} connectivity")
