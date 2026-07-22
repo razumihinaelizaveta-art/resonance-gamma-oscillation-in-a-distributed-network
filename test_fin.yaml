@@ -78,7 +78,7 @@ populations:
                 INa = -gNa*m**3*h*(v-ENa) : ampere
                 IKv3 = -gKv3*n**4*(v-EK) : ampere
                 IKv1 = -gKv1*a**4*(v-EK) : ampere
-                IL = -gL*(v-EL) : ampere
+                IL   = -gL*(v-EL) : ampere
 
             ext_eqs: |
                 I : ampere 
@@ -92,14 +92,14 @@ populations:
                 dv/dt = (  INa + IKv1 + IKv3 + IL + I + Isyn )/Cap : volt 
 
             # gathering all equations together
-            general_equ: gat_vars + ext_eqs + volt_eqs + eqs_syn
+            general_equ: volt_eqs + gat_vars + ext_eqs +  eqs_syn
 
         specs:
-            method: euler
+            method: exponential_euler
             threshold: v>-30*mV
             refractory: v>=-30*mV
         initials:
-            v: EL #(-52. + rnd.randn(num_neurons)*40)*mV
+            v: EL + rnd.random(num_neurons)*10*mV
             m: 0.01
             h: 0.99
             n: 0.01
@@ -122,7 +122,7 @@ synapses:
            sigma: 0.5630
         conductance:
             type: 'exponential'
-            max: 0.1
+            max: 0.00005
             sigma: 70
         delay:
             type: 'linear'
