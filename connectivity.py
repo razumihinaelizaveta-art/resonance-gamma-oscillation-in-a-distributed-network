@@ -120,6 +120,13 @@ def connectivity(conname:str,desc:dict,source_pos:np.array,target_pos:np.array,L
             [pre,post,d, gmax*np.exp(-(d/gsigma)**2)]
             for pre,post,d in connectivity
         ]
+    elif conductance['type'] == 'linear':
+        chack_requred_names(conductance,['offset','slope'],conname+': conductance')
+        ga,gk = conductance['offset'],conductance['slope']
+        connectivity = [
+            [pre,post,d, ga+gk*d]
+            for pre,post,d in connectivity
+        ]
     else:
         raise RuntimeError(f"{conname}:Unknown type of conductance!")    
     delay = desc['delay']
