@@ -71,12 +71,13 @@ def connectivity(conname:str,desc:dict,source_pos:np.array,target_pos:np.array,L
         from scipy.stats import lognorm
         chack_requred_names(geometry,['sigma','mu'],conname+': geometry')
         sigma, mu = geometry['sigma'], geometry['mu']
+        scale     = geometry['scale'] if 'scale' in geometry else 1.0
         # PDF value at this distance
         pdf_val = lognorm.pdf(np.array([_d_ for _,_,_d_ in d]), s=sigma, scale=np.exp(mu))
         # Peak PDF value (at distance = e^mu)
         peak_pdf = lognorm.pdf(np.exp(mu), s=sigma, scale=np.exp(mu))
         # Normalized probability in [0, 1]
-        prob = [ min(pv / peak_pdf, 1.0) for pv in pdf_val ]
+        prob = [ min(pv / peak_pdf, 1.0)*scale for pv in pdf_val ]
         
         # add connectivity based on Bernoulli trial 
         connectivity = [
@@ -87,7 +88,16 @@ def connectivity(conname:str,desc:dict,source_pos:np.array,target_pos:np.array,L
     elif geometry['type'] == 'exponential':
         chack_requred_names(geometry,['max','sigma'],conname+': geometry')
         pmax,psigma = geometry['max'],geometry['sigma']
-        prob = pmax*np.exp(-d/psigma)
+        prob = pmax*np.exp(-d['distance']/psigma)
+        connectivity = [
+            [pre,post,_d_]
+            for (pre,post,_d_),p in zip(d,prob)
+            if np.random.random() < p and (pre != post or selfid)
+        ]
+    elif geometry['type'] == 'gaussian':
+        chack_requred_names(geometry,['max','sigma'],conname+': geometry')
+        pmax,psigma = geometry['max'],geometry['sigma']
+        prob = pmax*np.exp(-(d['distance']/psigma)**2)
         connectivity = [
             [pre,post,_d_]
             for (pre,post,_d_),p in zip(d,prob)
@@ -123,20 +133,30 @@ def connectivity(conname:str,desc:dict,source_pos:np.array,target_pos:np.array,L
     elif conductance['type'] == 'linear':
         chack_requred_names(conductance,['offset','slope'],conname+': conductance')
         ga,gk = conductance['offset'],conductance['slope']
+        gsyn  = [ ga+gk*float(d) for pre,post,d in connectivity ]
         connectivity = [
-            [pre,post,d, ga+gk*d]
-            for pre,post,d in connectivity
+            [pre,post,d, g]
+            for (pre,post,d),g in zip(connectivity,gsyn)
+            if g > 0.0
         ]
     else:
         raise RuntimeError(f"{conname}:Unknown type of conductance!")    
     delay = desc['delay']
-    if delay['type'] == 'linear':
+    delay_type = delay['type']
+    if delay_type == 'linear':
         chack_requred_names(delay,['min','k'],conname+': delay')
         dmin, dk = delay['min'],delay['k']
         connectivity = [
             [pre,post,d,g,dmin+d/dk]
             for pre,post,d,g in connectivity
         ]
+    elif delay_type == 'constant':
+        chack_requred_names(delay,['delay'],conname+': delay')
+        delay = delay['delay']
+        connectivity = [
+            [pre,post,d,g,delay]
+            for pre,post,d,g in connectivity
+        ]
     else:
-        raise RuntimeError(f"{conname}:Unknown type of delay!")
+        raise RuntimeError(f"{conname}:Unknown {delay_type} type for delay!")
     return connectivity
