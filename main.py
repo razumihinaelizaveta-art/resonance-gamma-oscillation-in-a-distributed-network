@@ -257,13 +257,15 @@ net = b2.Network(active_neurons, active_synapses, M, S)
 net.run(500 * b2.ms, report='text')
 
 
-np.savez(args.output,
+res = dict(
     positions  = pops['pvbc'].coord_grid,
     spikes     = np.column_stack((S.t/ms, S.i)),
     voltages   = np.column_stack([M.t/ms]+[ _x_ for _x_ in M.v]),
     voltage_id = np.array(list(range(30)),dtype=int),
-    # features   = n.I0
+    # features   = pops['pvbc'].neurons.I0
 )
+np.savez(args.output,**res)
+
 
 figure(figsize=(12,6))
 subplot(121)
