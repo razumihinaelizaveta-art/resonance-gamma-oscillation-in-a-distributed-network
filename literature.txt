@@ -1,14 +1,25 @@
-Huang LW, Garden DLF, McClure C, Nolan MF. Synaptic interactions between stellate cells and parvalbumin interneurons in layer 2 of the medial entorhinal cortex are organized at the scale of grid cell clusters. Elife. 2024 Nov 1;12:RP92854. doi: 10.7554/eLife.92854. PMID: 39485383; PMCID: PMC11530233.
-Fernandez, F. R., Via, G., Canavier, C. C., & White, J. A. (2022). Kinetics and connectivity properties of Parvalbumin- and Somatostatin-Positive inhibition in layer 2/3 medial entorhinal cortex. eNeuro, 9(1), ENEURO.0441-21.2022. https://doi.org/10.1523/eneuro.0441-21.2022
-Bartos M, Vida I, Frotscher M, Meyer A, Monyer H, Geiger JR, Jonas P. Fast synaptic inhibition promotes synchronized gamma oscillations in hippocampal interneuron networks. Proc Natl Acad Sci U S A. 2002 Oct 1;99(20):13222-7. doi: 10.1073/pnas.192233099. Epub 2002 Sep 16. PMID: 12235359; PMCID: PMC130614.
-Bjerke, I. E., Yates, S. C., Laja, A., Witter, M. P., Puchades, M. A., Bjaalie, J. G., & Leergaard, T. B. (2020). Densities and numbers of calbindin and parvalbumin positive neurons across the rat and mouse brain. iScience, 24(1), 101906. https://doi.org/10.1016/j.isci.2020.101906
-Skoglund TS, Pascher R, Berthold CH. Heterogeneity in the columnar number of neurons in different neocortical areas in the rat. Neurosci Lett. 1996 Apr 19;208(2):97-100. doi: 10.1016/0304-3940(96)12569-6. PMID: 8859899.
-Stansfield, K., Ruby, K., Soares, B. et al. Early-life lead exposure recapitulates the selective loss of parvalbumin-positive GABAergic interneurons and subcortical dopamine system hyperactivity present in schizophrenia. Transl Psychiatry 5, e522 (2015). https://doi.org/10.1038/tp.2014.147
-Fekete, Z., Weisz, F., Karlócai, M. R., Veres, J. M., Andrási, T., & Hájos, N. (2024). Synaptic communication within the microcircuits of pyramidal neurons and basket cells in the mouse prefrontal cortex. bioRxiv (Cold Spring Harbor Laboratory). https://doi.org/10.1101/2024.01.16.575904
-Markram, H., Muller, E., Ramaswamy, S., Reimann, M. W., Abdellah, M., Sanchez, C. A., Ailamaki, A., Alonso-Nanclares, L., Antille, N., Arsever, S., Kahou, G. a. A., Berger, T. K., Bilgili, A., Buncic, N., Chalimourda, A., Chindemi, G., Courcol, J., Delalondre, F., Delattre, V., . . . Schürmann, F. (2015). Reconstruction and simulation of neocortical microcircuitry. Cell, 163(2), 456–492. https://doi.org/10.1016/j.cell.2015.09.029
-Kurth, A. C., Albers, J., Diesmann, M., & Van Albada, S. J. (2024). Cell-type specific projection patterns promote balanced activity in cortical microcircuits. bioRxiv (Cold Spring Harbor Laboratory). https://doi.org/10.1101/2024.10.03.616539
-Espinoza C, Guzman SJ, Zhang X, Jonas P. Parvalbumin+ interneurons obey unique connectivity rules and establish a powerful lateral-inhibition microcircuit in dentate gyrus. Nat Commun. 2018 Nov 2;9(1):4605. doi: 10.1038/s41467-018-06899-3. PMID: 30389916; PMCID: PMC6214995.
-Druga, R., Salaj, M., & Al-Redouan, A. (2023). Parvalbumin - Positive neurons in the neocortex: a review. Physiological Research, 72(Suppl 2), S173–S191. https://doi.org/10.33549/physiolres.935005
-Huang LW, Garden DLF, McClure C, Nolan MF. Synaptic interactions between stellate cells and parvalbumin interneurons in layer 2 of the medial entorhinal cortex are organized at the scale of grid cell clusters. Elife. 2024 Nov 1;12:RP92854. doi: 10.7554/eLife.92854. PMID: 39485383; PMCID: PMC11530233.
-Fekete, Z., Weisz, F., Karlócai, M. R., Veres, J. M., Andrási, T., & Hájos, N. (2024b). Synaptic communication within the microcircuits of pyramidal neurons and basket cells in the mouse prefrontal cortex. The Journal of Physiology, 603(20), 6423–6444. https://doi.org/10.1113/jp286284
-Via, G., Baravalle, R., Fernandez, F. R., White, J. A., & Canavier, C. C. (2022). Interneuronal network model of theta-nested fast oscillations predicts differential effects of heterogeneity, gap junctions and short term depression for hyperpolarizing versus shunting inhibition. PLoS Computational Biology, 18(12), e1010094. https://doi.org/10.1371/journal.pcbi.1010094
+1. Bartos M, Vida I, Frotscher M, Meyer A, Monyer H, Geiger JR, Jonas P. Fast synaptic inhibition promotes synchronized gamma oscillations in hippocampal interneuron networks. Proc Natl Acad Sci U S A. 2002 Oct 1;99(20):13222-7. doi: 10.1073/pnas.192233099. Epub 2002 Sep 16. PMID: 12235359; PMCID: PMC130614.
+
+2. Bjerke, I. E., Yates, S. C., Laja, A., Witter, M. P., Puchades, M. A., Bjaalie, J. G., & Leergaard, T. B. (2020). Densities and numbers of calbindin and parvalbumin positive neurons across the rat and mouse brain. iScience, 24(1), 101906. https://doi.org/10.1016/j.isci.2020.101906
+
+3. Druga, R., Salaj, M., & Al-Redouan, A. (2023). Parvalbumin-positive neurons in the neocortex: a review. Physiological Research, 72(Suppl 2), S173–S191. https://doi.org/10.33549/physiolres.935005
+
+4. Espinoza C, Guzman SJ, Zhang X, Jonas P. Parvalbumin+ interneurons obey unique connectivity rules and establish a powerful lateral-inhibition microcircuit in dentate gyrus. Nat Commun. 2018 Nov 2;9(1):4605. doi: 10.1038/s41467-018-06899-3. PMID: 30389916; PMCID: PMC6214995.
+
+5. Fekete, Z., Weisz, F., Karlócai, M. R., Veres, J. M., Andrási, T., & Hájos, N. (2024). Synaptic communication within the microcircuits of pyramidal neurons and basket cells in the mouse prefrontal cortex. bioRxiv (Cold Spring Harbor Laboratory). https://doi.org/10.1101/2024.01.16.575904
+
+6. Fekete, Z., Weisz, F., Karlócai, M. R., Veres, J. M., Andrási, T., & Hájos, N. (2024b). Synaptic communication within the microcircuits of pyramidal neurons and basket cells in the mouse prefrontal cortex. The Journal of Physiology, 603(20), 6423–6444. https://doi.org/10.1113/jp286284
+
+7. Fernandez, F. R., Via, G., Canavier, C. C., & White, J. A. (2022). Kinetics and connectivity properties of Parvalbumin- and Somatostatin-Positive inhibition in layer 2/3 medial entorhinal cortex. eNeuro, 9(1), ENEURO.0441-21.2022. https://doi.org/10.1523/eneuro.0441-21.2022
+
+8. Huang LW, Garden DLF, McClure C, Nolan MF. Synaptic interactions between stellate cells and parvalbumin interneurons in layer 2 of the medial entorhinal cortex are organized at the scale of grid cell clusters. Elife. 2024 Nov 1;12:RP92854. doi: 10.7554/eLife.92854. PMID: 39485383; PMCID: PMC11530233.
+
+9. Kurth, A. C., Albers, J., Diesmann, M., & Van Albada, S. J. (2024). Cell-type specific projection patterns promote balanced activity in cortical microcircuits. bioRxiv (Cold Spring Harbor Laboratory). https://doi.org/10.1101/2024.10.03.616539
+
+10. Markram, H., Muller, E., Ramaswamy, S., Reimann, M. W., Abdellah, M., Sanchez, C. A., Ailamaki, A., Alonso-Nanclares, L., Antille, N., Arsever, S., Kahou, G. a. A., Berger, T. K., Bilgili, A., Buncic, N., Chalimourda, A., Chindemi, G., Courcol, J., Delalondre, F., Delattre, V., . . . Schürmann, F. (2015). Reconstruction and simulation of neocortical microcircuitry. Cell, 163(2), 456–492. https://doi.org/10.1016/j.cell.2015.09.029
+
+11. Skoglund TS, Pascher R, Berthold CH. Heterogeneity in the columnar number of neurons in different neocortical areas in the rat. Neurosci Lett. 1996 Apr 19;208(2):97-100. doi: 10.1016/0304-3940(96)12569-6. PMID: 8859899.
+
+12. Stansfield, K., Ruby, K., Soares, B. et al. Early-life lead exposure recapitulates the selective loss of parvalbumin-positive GABAergic interneurons and subcortical dopamine system hyperactivity present in schizophrenia. Transl Psychiatry 5, e522 (2015). https://doi.org/10.1038/tp.2014.147
+
+13. Via, G., Baravalle, R., Fernandez, F. R., White, J. A., & Canavier, C. C. (2022). Interneuronal network model of theta-nested fast oscillations predicts differential effects of heterogeneity, gap junctions and short term depression for hyperpolarizing versus shunting inhibition. PLoS Computational Biology, 18(12), e1010094. https://doi.org/10.1371/journal.pcbi.1010094
