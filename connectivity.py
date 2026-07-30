@@ -59,14 +59,26 @@ def chack_requred_names(desc:dict,names:list,host:str):
     return
 def connectivity(conname:str,desc:dict,source_pos:np.array,target_pos:np.array,L:float,H:float,cbc:bool=True,selfid:bool=False)->tuple:
     d = distances(source_pos,target_pos,L,H,cbc)
+    if not 'geometry' in desc:
+        raise RuntimeError(f"Cannot find geometry in `{conname}` connection!")
+    
     geometry = desc['geometry']
+    if not 'type' in geometry:
+        raise RuntimeError(f"Cannot find type of connection in geometry of `{conname}`!")
+    
     if   geometry['type'] == 'random':
         chack_requred_names(geometry,['probability'],conname+': geometry')
         p = geometry['probability']
         connectivity = [
             [pre,post,_d_]
             for pre,post,_d_ in d
-            if (pre != post or selfid) and rnd.rand() < p]
+            if pre != post  and np.random.rand() < p]
+            # if (pre != post or selfid) and np.random.rand() < p]
+        #DB>>
+        # idx, = np.where(np.array(connectivity,dtype=int)[:,1] == 0)
+        # print('DB>>', idx.shape)
+        # exit(0)
+        #<<DB
     elif geometry['type'] == 'lognormal':
         from scipy.stats import lognorm
         chack_requred_names(geometry,['sigma','mu'],conname+': geometry')
