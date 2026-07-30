@@ -115,6 +115,7 @@ class Population:
                                    **specs                 # all other specific keywords
                                   )
         
+        self.namespace['neurons'] = self.neurons
         for name, value in nrns.items():
             if isinstance(value, str):
                 value = eval(value, self.namespace)     # those values are actual formulas
