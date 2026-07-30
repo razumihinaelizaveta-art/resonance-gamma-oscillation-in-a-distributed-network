@@ -65,7 +65,8 @@ class Population:
             return np.array(points)
             
         self.coord_grid = uniform_points_grid(L=self.L, H=self.H, N=self.num_neurons)
-        
+        self.namespace['positions'] = self.coord_grid
+
         self.load_constants()       # store constants from .yaml into instance
         self.load_equations()       # store equations from .yaml into instance
         self.set_neuron_group()     # creates neuron group
