@@ -6,6 +6,33 @@ from numpy import random as rnd
 from connectivity import connectivity
 import argparse
 
+def uniform_points_grid(L: int, H: int, N: int) -> np.array:
+    """distribute given num_neurons (N) in the given 2D space L*H"""
+    
+    nx = int(round(np.sqrt(N * L / H)))
+    ny = int(np.ceil(N / nx))
+    while nx * ny < N:
+        if L > H:
+            ny += 1
+        else:
+            nx += 1
+    base_nx_per_row = N // ny
+    residuals = N % ny
+    dx_total = L / nx
+    dy_total = H / ny
+    points = []
+    for j in range(ny):
+        points_in_this_row = base_nx_per_row + (1 if j < residuals else 0)
+        if points_in_this_row == 0:
+            continue
+        dx_row = L / points_in_this_row
+        y = (j + 0.5) * dy_total
+        for i in range(points_in_this_row):
+            x = (i + 0.5) * dx_row
+            points.append([x, y])
+
+    return np.array(points)
+
 class Population:
     """main class to store for all yaml processing"""
     
@@ -37,32 +64,6 @@ class Population:
             self.num_neurons = self.file['num_neurons']      # for cases where initial amount is provided
             self.namespace['num_neurons'] = self.file['num_neurons']   # adding it to namespace as well
 
-        def uniform_points_grid(L: int, H: int, N: int) -> np.array:
-            """distribute given num_neurons (N) in the given 2D space L*H"""
-            
-            nx = int(round(np.sqrt(N * L / H)))
-            ny = int(np.ceil(N / nx))
-            while nx * ny < N:
-                if L > H:
-                    ny += 1
-                else:
-                    nx += 1
-            base_nx_per_row = N // ny
-            residuals = N % ny
-            dx_total = L / nx
-            dy_total = H / ny
-            points = []
-            for j in range(ny):
-                points_in_this_row = base_nx_per_row + (1 if j < residuals else 0)
-                if points_in_this_row == 0:
-                    continue
-                dx_row = L / points_in_this_row
-                y = (j + 0.5) * dy_total
-                for i in range(points_in_this_row):
-                    x = (i + 0.5) * dx_row
-                    points.append([x, y])
-
-            return np.array(points)
             
         self.coord_grid = uniform_points_grid(L=self.L, H=self.H, N=self.num_neurons)
         self.namespace['positions'] = self.coord_grid
@@ -169,28 +170,30 @@ class Syns:
         
         #DB>>
         con_stats = []
-        connections = np.array(self.connectivity)
-        
+        connections_post = np.array(self.connectivity,dtype=int  )[:,1]
+        connections_gd   = np.array(self.connectivity,dtype=float)[:,3:]
         for post in range(self.target.num_neurons):
-            ids, = np.where(connections[:,1].astype(int) == post)
+            ids, = np.where(connections_post == post)
             con_stats.append(ids.shape[0])
+        con_stats = np.array(con_stats)
+        
         print(f'Connection {self.name}')
         print(f' > number of postsinaptic neurons: {len(con_stats)}')
         print(f' > number of connections:')
-        print(f'   > min   : {np.amin(con_stats)}')
-        print(f'   > mean  : {np.mean(con_stats)}')
+        print(f'   > min   : {np.amin(  con_stats)}')
+        print(f'   > mean  : {np.mean(  con_stats)}')
         print(f'   > median: {np.median(con_stats)}')
-        print(f'   > max   : {np.amax(con_stats)}')
+        print(f'   > max   : {np.amax(  con_stats)}')
         print(f' > synaptic conductance :')
-        print(f'   > min   : {np.amin(connections[:,3])}')
-        print(f'   > mean  : {np.mean(connections[:,3])}')
-        print(f'   > median: {np.median(connections[:,3])}')
-        print(f'   > max   : {np.amax(connections[:,3])}')
+        print(f'   > min   : {np.amin(  connections_gd[:,0])}')
+        print(f'   > mean  : {np.mean(  connections_gd[:,0])}')
+        print(f'   > median: {np.median(connections_gd[:,0])}')
+        print(f'   > max   : {np.amax(  connections_gd[:,0])}')
         print(f' > synaptic delays:')
-        print(f'   > min   : {np.amin(connections[:,4])}')
-        print(f'   > mean  : {np.mean(connections[:,4])}')
-        print(f'   > median: {np.median(connections[:,4])}')
-        print(f'   > max   : {np.amax(connections[:,4])}')
+        print(f'   > min   : {np.amin(  connections_gd[:,1])}')
+        print(f'   > mean  : {np.mean(  connections_gd[:,1])}')
+        print(f'   > median: {np.median(connections_gd[:,1])}')
+        print(f'   > max   : {np.amax(  connections_gd[:,1])}')
         #<<DB
     def connect(self):
         """connects synapses"""
@@ -226,66 +229,67 @@ class Syns:
         #             setattr(self.synapses, key, value)
         #             self.namespace[key] = value
 
-parser = argparse.ArgumentParser(description="Give script a file and get output from it")
-parser.add_argument("filename", type=str, help="The name or path of the YAML file to load")
-parser.add_argument("output", type=str, help="The name of the .npz file to store data in")
-args = parser.parse_args()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Give script a file and get output from it")
+    parser.add_argument("filename", type=str, help="The name or path of the YAML file to load")
+    parser.add_argument("output", type=str, help="The name of the .npz file to store data in")
+    args = parser.parse_args()
 
-with open(args.filename, 'r') as file:
-    f = yaml.safe_load(file)   
-    
-pops = {}
-syns = {}
-geometry = f['geometry']
+    with open(args.filename, 'r') as file:
+        f = yaml.safe_load(file)   
+        
+    pops = {}
+    syns = {}
+    geometry = f['geometry']
 
-for pop in f['populations']:
-    pops[pop] = Population(f['populations'][pop], population=pop, geometry=geometry)
-    #test = Population(f['populations'][pop], population=pop, geometry=geometry)
+    for pop in f['populations']:
+        pops[pop] = Population(f['populations'][pop], population=pop, geometry=geometry)
+        #test = Population(f['populations'][pop], population=pop, geometry=geometry)
 
-for syn in f['synapses']:
-    syns[syn] = Syns(f['synapses'][syn], pops, connection_name=syn)
-    #test = Syns(f['synapses'][syn], neurons=pops, connection_name=syn)
-
-
-
-import brian2 as b2
-b2.defaultclock.dt = 0.05*b2.ms
-# clears any ghost objects left over from previous cell runs
-b2.device.reinit()
-b2.start_scope()
-
-# extract brian2 objects from your instances
-active_neurons = [pop_obj.neurons for pop_obj in pops.values()]
-active_synapses = [syn_obj.synapses for syn_obj in syns.values()]
-
-# build the network containing only active objects
-M = b2.StateMonitor(pops['pvbc'].neurons, 'v', record=list(range(30)))
-S = b2.SpikeMonitor(pops['pvbc'].neurons)
-
-net = b2.Network(active_neurons, active_synapses, M, S)
-
-# run the explicit network instead of the global magic system
-net.run(500 * b2.ms, report='text')
+    for syn in f['synapses']:
+        syns[syn] = Syns(f['synapses'][syn], pops, connection_name=syn)
+        #test = Syns(f['synapses'][syn], neurons=pops, connection_name=syn)
 
 
-res = dict(
-    positions  = pops['pvbc'].coord_grid,
-    spikes     = np.column_stack((S.t/ms, S.i)),
-    voltages   = np.column_stack([M.t/ms]+[ _x_ for _x_ in M.v]),
-    voltage_id = np.array(list(range(30)),dtype=int),
-    # features   = pops['pvbc'].neurons.I0
-)
-np.savez(args.output,**res)
+
+    import brian2 as b2
+    b2.defaultclock.dt = 0.05*b2.ms
+    # clears any ghost objects left over from previous cell runs
+    b2.device.reinit()
+    b2.start_scope()
+
+    # extract brian2 objects from your instances
+    active_neurons = [pop_obj.neurons for pop_obj in pops.values()]
+    active_synapses = [syn_obj.synapses for syn_obj in syns.values()]
+
+    # build the network containing only active objects
+    M = b2.StateMonitor(pops['pvbc'].neurons, 'v', record=list(range(30)))
+    S = b2.SpikeMonitor(pops['pvbc'].neurons)
+
+    net = b2.Network(active_neurons, active_synapses, M, S)
+
+    # run the explicit network instead of the global magic system
+    net.run(1500 * b2.ms, report='text')
 
 
-figure(figsize=(12,6))
-subplot(121)
-xlim(0,500)
-xlabel('t (ms)')
-plot(S.t/ms,S.i,'k.')
-subplot(122)
-for i in range(30):
-    plot(M.t / ms, M[i].v / mV+10*i)
-xlabel('t (ms)')
-ylabel('v (mV)')
-show()
+    res = dict(
+        positions  = pops['pvbc'].coord_grid,
+        spikes     = np.column_stack((S.t/ms, S.i)),
+        voltages   = np.column_stack([M.t/ms]+[ _x_ for _x_ in M.v]),
+        voltage_id = np.array(list(range(30)),dtype=int),
+        features   = pops['pvbc'].neurons.I0
+    )
+    np.savez(args.output,**res)
+
+
+    figure(figsize=(12,6))
+    subplot(121)
+    xlim(0,500)
+    xlabel('t (ms)')
+    plot(S.t/ms,S.i,'k.')
+    subplot(122)
+    for i in range(30):
+        plot(M.t / ms, M[i].v / mV+10*i)
+    xlabel('t (ms)')
+    ylabel('v (mV)')
+    show()
