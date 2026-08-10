@@ -80,7 +80,7 @@ def shuffle_features(old_feature):
     """Randomly shuffle neuron feature while preserving their distribution."""
 
     new_feature = old_feature.copy()
-    np.random.shuffle(new_feature,axis=0)
+    np.random.shuffle(new_feature)
     return new_feature
 
 def preprocess_data(feature, spikes_raw, args, spike_part,):
