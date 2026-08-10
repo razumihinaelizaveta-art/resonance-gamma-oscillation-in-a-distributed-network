@@ -236,7 +236,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     with open(args.filename, 'r') as file:
-        f = yaml.safe_load(file)   
+        f = yaml.safe_load(file)  
+    print(f'Load a model from `{args.filename}`')
         
     pops = {}
     syns = {}
@@ -280,6 +281,7 @@ if __name__ == '__main__':
         features   = pops['pvbc'].neurons.I0
     )
     np.savez(args.output,**res)
+    print(f'Results are saved into `{args.output}`')
 
 
     figure(figsize=(12,6))
