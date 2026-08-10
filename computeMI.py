@@ -4,7 +4,7 @@ from ButtsMI.dist_comput import _ftnorms
 import argparse
 import json
 import os
-import multiprocessing as mp
+# import multiprocessing as mp
 
 
 def parse_arguments():
@@ -62,12 +62,12 @@ def parse_arguments():
         help="Number of shuffled control iterations."
     )
 
-    parser.add_argument(
-        "--use-cpu",
-        type=int,
-        default=os.cpu_count(),
-        help="Use CPU to compute shuffled MI (default all CPUs)."
-    )
+    # parser.add_argument(
+        # "--use-cpu",
+        # type=int,
+        # default=os.cpu_count(),
+        # help="Use CPU to compute shuffled MI (default all CPUs)."
+    # )
 
     return parser.parse_args()
 
@@ -208,19 +208,15 @@ def compute_mutual_information(feature, spikes):
 
     return {
         "bmi": bmi,
-        "distance_histogram": dh,
-        "distance_bins": db,
+        "feature_histogram": dh,
+        "feature_bins": db,
         "num_bins": nbins,
         "mutual_information": float(mi),
     }
 
 
-def suffle_and_compute(X):
-    (bmi,
-    features,
-    spikes,
-    dh,
-    db) = X
+def suffle_and_compute(bmi, features, spikes, dh, db, iteration):
+    
     shuffled_feature = shuffle_features(features)
     ret = bmi._computeMI(
         shuffled_feature,
@@ -233,16 +229,17 @@ def suffle_and_compute(X):
         _, _, _, mi = ret
     else:
         mi = None
+    print(f" > on iteration #{iteration} MI={mi}")
     return mi
     
-def run_shuffle_controls(bmi, features, spikes, dh, db, iterations, use_cpus):
-    if use_cpus < 1 or use_cpus > os.cpu_count():
-        use_cpus = os.cpu_count()
+def run_shuffle_controls(bmi, features, spikes, dh, db, iterations):
 
     print(f"Running {iterations} shuffled controls...")
     
-    with mp.Pool(use_cpus) as p:
-        shuffled_mi  = p.map(suffle_and_compute, [ (bmi, features, spikes, dh, db) for _ in range(iterations) ])
+    shuffled_mi  = [
+        suffle_and_compute(bmi, features, spikes, dh, db,iteration) 
+        for iteration in range(iterations) 
+    ]
 
 
     return shuffled_mi
@@ -282,10 +279,9 @@ def main():
             mi_results["bmi"],
             feature,
             spikes,
-            mi_results["distance_histogram"],
-            mi_results["distance_bins"],
-            args.shuffle_iterations,
-            args.use_cpu
+            mi_results["feature_histogram"],
+            mi_results["feature_bins"],
+            args.shuffle_iterations
         )
 
     results = {
@@ -302,8 +298,8 @@ def main():
     "usable_neurons": usable,
     "mutual_information": mi_results["mutual_information"] if mi_results is not None else None,
     "shuffle_iterations": args.shuffle_iterations,
-    "shuffle_mean": float(np.mean(shuffled_mi)) if shuffled_mi else None,
-    "shuffle_std": float(np.std(shuffled_mi)) if shuffled_mi else None,
+    "shuffle_mean": float(np.mean(shuffled_mi)) if shuffled_mi and len(shuffled_mi) > 0 else None,
+    "shuffle_std": float(np.std(shuffled_mi)) if shuffled_mi  and len(shuffled_mi) > 0 else None,
     "shuffled_mutual_information_values": shuffled_mi if shuffled_mi else None,
     "status": "success" if mi_results is not None else "failed",
     }
