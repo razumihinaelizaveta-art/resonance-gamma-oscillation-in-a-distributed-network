@@ -19,6 +19,13 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "--feature-array",
+        type=str,
+        default="positions",
+        help="An array used for features (default is positions)"
+    )
+
+    parser.add_argument(
         "--remove-first",
         type=float,
         default=0.0,
@@ -57,26 +64,26 @@ def parse_arguments():
 
 
 # load the data
-def load_data(filename):
+def load_data(filename,feature_array):
     """Load neuron positions and spike events from an NPZ file."""
 
     data = np.load(filename, allow_pickle=True)
 
-    positions = data["positions"].astype(float)
+    features   = data[feature_array]#.astype(float)
     spikes_raw = data["spikes"]
 
     
-    return positions, spikes_raw
+    return features, spikes_raw
 
-# mixes the positions between the neurons. The positions stay the same, only which neuron sits where changes.
+# mixes the feature between the neurons. The feature stay the same, only which neuron sits where changes.
 def shuffle_features(old_feature):
-    """Randomly shuffle neuron positions while preserving their distribution."""
+    """Randomly shuffle neuron feature while preserving their distribution."""
 
     new_feature = old_feature.copy()
-    np.random.shuffle(new_feature)
+    np.random.shuffle(new_feature,axis=0)
     return new_feature
 
-def preprocess_data(positions, spikes_raw, args, spike_part,):
+def preprocess_data(feature, spikes_raw, args, spike_part,):
 
 
     n_spikes_total = len(spikes_raw)
@@ -109,7 +116,7 @@ def preprocess_data(positions, spikes_raw, args, spike_part,):
     keep_spikes = len(spikes_raw) // spike_part
     spikes_raw = spikes_raw[:keep_spikes]
 
-    n_neurons = positions.shape[0]
+    n_neurons = feature.shape[0]
     print("number of neurons:", n_neurons)
     print("spikes kept:", len(spikes_raw))
 
@@ -129,7 +136,7 @@ def preprocess_data(positions, spikes_raw, args, spike_part,):
         keep_neurons = n_neurons
     else:
         keep_neurons = min(args.keep_neurons, n_neurons)
-    positions = positions[:keep_neurons]
+    feature = feature[:keep_neurons]
     spikes = spikes[:keep_neurons]
     print(f"neurons used: {keep_neurons}")
 
@@ -147,17 +154,17 @@ def preprocess_data(positions, spikes_raw, args, spike_part,):
 
     spikes_used = len(spikes_raw)
 
-    return (positions, spikes, keep_neurons, spikes_used, silent, one_spike, usable, n_spikes_total)
+    return (feature, spikes, keep_neurons, spikes_used, silent, one_spike, usable, n_spikes_total)
 
-def compute_mutual_information(positions, spikes):
-    """Compute mutual information from neuron positions and spike trains."""
+def compute_mutual_information(feature, spikes):
+    """Compute mutual information from neuron feature and spike trains."""
 
     print("Computing mutual information...")
 
     bmi = ButtsMI(reduceBOS=False, isimax=100)
 
     # Distance between every pair of neurons
-    dist = _ftnorms(positions, bmi.ftnormord)
+    dist = _ftnorms(feature, bmi.ftnormord)
     print("pairs:", dist.shape[0])
 
     # Build the distance histogram
@@ -180,7 +187,7 @@ def compute_mutual_information(positions, spikes):
     print("number of distance bins:", nbins)
 
     # Compute mutual information
-    ret = bmi._computeMI(positions, dh, db, spikes)
+    ret = bmi._computeMI(feature, dh, db, spikes)
 
     if ret is None:
         print("Mutual Information could not be computed.")
@@ -199,16 +206,16 @@ def compute_mutual_information(positions, spikes):
     }
 
 
-def run_shuffle_controls(bmi, positions, spikes, dh, db, iterations):
+def run_shuffle_controls(bmi, feature, spikes, dh, db, iterations):
     shuffled_mi = []
 
     print(f"Running {iterations} shuffled controls...")
 
     for i in range(iterations):
-        shuffled_positions = shuffle_features(positions)
+        shuffled_feature = shuffle_features(feature)
 
         ret = bmi._computeMI(
-            shuffled_positions,
+            shuffled_feature,
             dh,
             db,
             spikes,
@@ -229,10 +236,10 @@ def main():
 
     args = parse_arguments()
 
-    positions, spikes_raw = load_data(args.input)
+    feature, spikes_raw = load_data(args.input, args.feature_array)
 
     (
-        positions,
+        feature,
         spikes,
         keep_neurons,
         spikes_used,
@@ -241,14 +248,14 @@ def main():
         usable,
         n_spikes_total,
     ) = preprocess_data(
-        positions,
+        feature,
         spikes_raw,
         args,
         spike_part=1,
     )
 
     mi_results = compute_mutual_information(
-        positions,
+        feature,
         spikes,
     )
 
@@ -257,7 +264,7 @@ def main():
     if mi_results is not None and args.shuffle_iterations > 0:
         shuffled_mi = run_shuffle_controls(
             mi_results["bmi"],
-            positions,
+            feature,
             spikes,
             mi_results["distance_histogram"],
             mi_results["distance_bins"],
@@ -266,6 +273,7 @@ def main():
 
     results = {
     "input_file": args.input,
+    "feature_array": args.feature_array,
     "remove_first_ms": args.remove_first,
     "remove_last_ms": args.remove_last,
     "neurons_requested": args.keep_neurons,
