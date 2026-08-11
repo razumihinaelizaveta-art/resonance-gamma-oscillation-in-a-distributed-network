@@ -1,0 +1,21 @@
+{
+    "input_file": "inf-test/SpatiallyOrganizedDrive-Lognormal91cpn-0.npz",
+    "feature_array": "features",
+    "remove_first_ms": 100.0,
+    "remove_last_ms": 0.0,
+    "neurons_requested": null,
+    "neurons_used": 3037,
+    "spikes_total": 74255,
+    "spikes_used": 68717,
+    "silent_neurons": 1327,
+    "single_spike_neurons": 63,
+    "usable_neurons": 1647,
+    "mutual_information": 0.4025878958095869,
+    "shuffle_iterations": 1,
+    "shuffle_mean": 0.038765952376657024,
+    "shuffle_std": 0.0,
+    "shuffled_mutual_information_values": [
+        0.038765952376657024
+    ],
+    "status": "success"
+}

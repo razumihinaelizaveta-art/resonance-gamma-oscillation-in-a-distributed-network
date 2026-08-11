@@ -1,0 +1,21 @@
+{
+    "input_file": "inf-test/SpatiallyOrganizedDrive-Random91cpn-0.npz",
+    "feature_array": "features",
+    "remove_first_ms": 100.0,
+    "remove_last_ms": 0.0,
+    "neurons_requested": null,
+    "neurons_used": 3037,
+    "spikes_total": 135173,
+    "spikes_used": 125835,
+    "silent_neurons": 59,
+    "single_spike_neurons": 24,
+    "usable_neurons": 2954,
+    "mutual_information": 0.5262705450425357,
+    "shuffle_iterations": 1,
+    "shuffle_mean": 0.022466836416528448,
+    "shuffle_std": 0.0,
+    "shuffled_mutual_information_values": [
+        0.022466836416528448
+    ],
+    "status": "success"
+}

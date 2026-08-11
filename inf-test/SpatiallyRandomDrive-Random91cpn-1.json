@@ -1,0 +1,21 @@
+{
+    "input_file": "inf-test/SpatiallyRandomDrive-Random91cpn-1.npz",
+    "feature_array": "features",
+    "remove_first_ms": 100.0,
+    "remove_last_ms": 0.0,
+    "neurons_requested": null,
+    "neurons_used": 3037,
+    "spikes_total": 139082,
+    "spikes_used": 129688,
+    "silent_neurons": 45,
+    "single_spike_neurons": 14,
+    "usable_neurons": 2978,
+    "mutual_information": 0.5261676640510475,
+    "shuffle_iterations": 1,
+    "shuffle_mean": 0.025280617452458475,
+    "shuffle_std": 0.0,
+    "shuffled_mutual_information_values": [
+        0.025280617452458475
+    ],
+    "status": "success"
+}
