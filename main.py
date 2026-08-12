@@ -1,4 +1,5 @@
 import yaml
+import json
 from numpy import *
 from matplotlib.pyplot import *
 from brian2 import *
@@ -79,8 +80,11 @@ class Population:
         
         # looping through the found constants
         for name, expr in const.items():
-            if isinstance(expr, str):               # only strings can be evaled
-                value = eval(expr, self.namespace)  # looks for variables in the instance namespace
+            if isinstance(expr, str):               # only strings can be evaluated
+                try:
+                    value = eval(expr, self.namespace)  # looks for variables in the instance namespace
+                except BaseException as e:
+                    raise RuntimeError(f"Cannot evaluate expression for constants `{name}: {value}`: {e}")
             else:
                 value = expr
     
@@ -119,7 +123,10 @@ class Population:
         self.namespace['neurons'] = self.neurons
         for name, value in nrns.items():
             if isinstance(value, str):
-                value = eval(value, self.namespace)     # those values are actual formulas
+                try:
+                    value = eval(value, self.namespace) # those values are actual formulas
+                except BaseException as e:
+                    raise RuntimeError(f"Cannot evaluate expression for initial condition `{name}: {value}`: {e}")
                 setattr(self.neurons, name, value)      # adding variable "name" with value "expr" to the instance namespace
                 self.namespace[name] = value            # updating instance namespace with new variable
             else:
