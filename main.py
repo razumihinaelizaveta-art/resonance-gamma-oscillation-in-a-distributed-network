@@ -244,7 +244,7 @@ if __name__ == '__main__':
 
     with open(args.filename, 'r') as file:
         f = yaml.safe_load(file)  
-    print(f'Load a model from `{args.filename}`')
+    print(f'Loaded a model file `{args.filename}`')
         
     pops = {}
     syns = {}
@@ -267,14 +267,18 @@ if __name__ == '__main__':
     b2.start_scope()
 
     # extract brian2 objects from your instances
-    active_neurons = [pop_obj.neurons for pop_obj in pops.values()]
+    active_neurons  = [pop_obj.neurons  for pop_obj in pops.values()]
     active_synapses = [syn_obj.synapses for syn_obj in syns.values()]
 
     # build the network containing only active objects
-    M = b2.StateMonitor(pops['pvbc'].neurons, 'v', record=list(range(30)))
+    recorded_ids = np.random.choice(pops['pvbc'].num_neurons,20,replace=False)
+
+    M = b2.StateMonitor(pops['pvbc'].neurons, 'v', record=recorded_ids)
     S = b2.SpikeMonitor(pops['pvbc'].neurons)
 
     net = b2.Network(active_neurons, active_synapses, M, S)
+    
+    print(f'The model fom file `{args.filename}` is fully created... running')
 
     # run the explicit network instead of the global magic system
     net.run(1500 * b2.ms, report='text')
@@ -284,7 +288,7 @@ if __name__ == '__main__':
         positions  = pops['pvbc'].coord_grid,
         spikes     = np.column_stack((S.t/ms, S.i)),
         voltages   = np.column_stack([M.t/ms]+[ _x_ for _x_ in M.v]),
-        voltage_id = np.array(list(range(30)),dtype=int),
+        voltage_id = recorded_ids,
         features   = pops['pvbc'].neurons.I0
     )
     np.savez(args.output,**res)
@@ -297,8 +301,8 @@ if __name__ == '__main__':
     xlabel('t (ms)')
     plot(S.t/ms,S.i,'k.')
     subplot(122)
-    for i in range(30):
-        plot(M.t / ms, M[i].v / mV+10*i)
+    for i in range(recorded_ids.shape[0]):
+        plot(M.t / ms, M.v[i] / mV+10*i)
     xlabel('t (ms)')
     ylabel('v (mV)')
-    show()
+#    show()
