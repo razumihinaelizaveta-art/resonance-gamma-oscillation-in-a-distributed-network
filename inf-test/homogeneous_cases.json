@@ -1,0 +1,50 @@
+{
+        "Homogeneous Network, Organized Drive, Local Connections": [
+            "inf-test/SpatiallyOrganizedDrive-Lognormal91cpn-homogeneous-0.json",
+            "inf-test/SpatiallyOrganizedDrive-Lognormal91cpn-homogeneous-1.json",
+            "inf-test/SpatiallyOrganizedDrive-Lognormal91cpn-homogeneous-2.json",
+            "inf-test/SpatiallyOrganizedDrive-Lognormal91cpn-homogeneous-3.json",
+            "inf-test/SpatiallyOrganizedDrive-Lognormal91cpn-homogeneous-4.json",
+            "inf-test/SpatiallyOrganizedDrive-Lognormal91cpn-homogeneous-5.json",
+            "inf-test/SpatiallyOrganizedDrive-Lognormal91cpn-homogeneous-6.json",
+            "inf-test/SpatiallyOrganizedDrive-Lognormal91cpn-homogeneous-7.json",
+            "inf-test/SpatiallyOrganizedDrive-Lognormal91cpn-homogeneous-8.json",
+            "inf-test/SpatiallyOrganizedDrive-Lognormal91cpn-homogeneous-9.json"
+        ],
+        "Homogeneous Network, Random Drive, Local Connections": [
+            "inf-test/SpatiallyRandomDrive-Lognormal91cpn-homogeneous-0.json",
+            "inf-test/SpatiallyRandomDrive-Lognormal91cpn-homogeneous-1.json",
+            "inf-test/SpatiallyRandomDrive-Lognormal91cpn-homogeneous-2.json",
+            "inf-test/SpatiallyRandomDrive-Lognormal91cpn-homogeneous-3.json",
+            "inf-test/SpatiallyRandomDrive-Lognormal91cpn-homogeneous-4.json",
+            "inf-test/SpatiallyRandomDrive-Lognormal91cpn-homogeneous-5.json",
+            "inf-test/SpatiallyRandomDrive-Lognormal91cpn-homogeneous-6.json",
+            "inf-test/SpatiallyRandomDrive-Lognormal91cpn-homogeneous-7.json",
+            "inf-test/SpatiallyRandomDrive-Lognormal91cpn-homogeneous-8.json",
+            "inf-test/SpatiallyRandomDrive-Lognormal91cpn-homogeneous-9.json"
+        ],
+        "Homogeneous Network, Organized Drive, Random Connections": [
+            "inf-test/SpatiallyOrganizedDrive-Random91cpn-homogeneous-0.json",
+            "inf-test/SpatiallyOrganizedDrive-Random91cpn-homogeneous-1.json",
+            "inf-test/SpatiallyOrganizedDrive-Random91cpn-homogeneous-2.json",
+            "inf-test/SpatiallyOrganizedDrive-Random91cpn-homogeneous-3.json",
+            "inf-test/SpatiallyOrganizedDrive-Random91cpn-homogeneous-4.json",
+            "inf-test/SpatiallyOrganizedDrive-Random91cpn-homogeneous-5.json",
+            "inf-test/SpatiallyOrganizedDrive-Random91cpn-homogeneous-6.json",
+            "inf-test/SpatiallyOrganizedDrive-Random91cpn-homogeneous-7.json",
+            "inf-test/SpatiallyOrganizedDrive-Random91cpn-homogeneous-8.json",
+            "inf-test/SpatiallyOrganizedDrive-Random91cpn-homogeneous-9.json"
+        ],
+        "Homogeneous Network, Random Drive, Random Connections": [
+            "inf-test/SpatiallyRandomDrive-Random91cpn-homogeneous-0.json",
+            "inf-test/SpatiallyRandomDrive-Random91cpn-homogeneous-1.json",
+            "inf-test/SpatiallyRandomDrive-Random91cpn-homogeneous-2.json",
+            "inf-test/SpatiallyRandomDrive-Random91cpn-homogeneous-3.json",
+            "inf-test/SpatiallyRandomDrive-Random91cpn-homogeneous-4.json",
+            "inf-test/SpatiallyRandomDrive-Random91cpn-homogeneous-5.json",
+            "inf-test/SpatiallyRandomDrive-Random91cpn-homogeneous-6.json",
+            "inf-test/SpatiallyRandomDrive-Random91cpn-homogeneous-7.json",
+            "inf-test/SpatiallyRandomDrive-Random91cpn-homogeneous-8.json",
+            "inf-test/SpatiallyRandomDrive-Random91cpn-homogeneous-9.json"
+        ]
+}
