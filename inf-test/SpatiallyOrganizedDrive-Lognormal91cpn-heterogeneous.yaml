@@ -143,7 +143,7 @@ populations:
             tha1 : np.array(modelbase["tha1"])[neuronid]*mV
 
             #I0: 229*pA # minimal applied current to generate PIR
-            I0: 229*pA #229*pA + np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150)*30*pA
+            I0: np.array(modelbase["pir_threshold"])[neuronid] * (1.0 + 0.1* np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150) )*pA
             #Isin: 50*pA
             #Inoise: 10*pA
             Isin: 0*pA #229*pA + np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150)*40*pA

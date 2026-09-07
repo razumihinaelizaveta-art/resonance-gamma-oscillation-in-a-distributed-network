@@ -143,7 +143,7 @@ populations:
             thn1 : np.array(modelbase["thn1"])[neuronid]*mV
             tha1 : np.array(modelbase["tha1"])[neuronid]*mV
 
-            Ibase: (229 + np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150)*30).tolist()
+            Ibase: np.array(modelbase["pir_threshold"])[neuronid] * (1.0 + 0.1* np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150) )
             I0: Ibase*pA if rnd.shuffle( Ibase ) is None else Ibase*pA
             Isin: 0*pA #229*pA + np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150)*40*pA
             Inoise: 0*pA #70*pA
