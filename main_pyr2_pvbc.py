@@ -121,6 +121,7 @@ class Population:
                                   )
         
         self.namespace['neurons'] = self.neurons
+        print(self.neuron_type)
         for name, value in nrns.items():
             if isinstance(value, str):
                 try:
@@ -284,8 +285,8 @@ if __name__ == '__main__':
         positions  = pops['pvbc'].coord_grid,
         spikes     = np.column_stack((S.t/ms, S.i)),
         voltages   = np.column_stack([M.t/ms]+[ _x_ for _x_ in M.v]),
-        voltage_id = np.array(list(range(30)),dtype=int)#,
-        #features   = pops['pvbc'].neurons.I0
+        voltage_id = np.array(list(range(30)),dtype=int),
+        features   = pops['pvbc'].neurons.I0
     )
     np.savez(args.output,**res)
     print(f'Results are saved into `{args.output}`')

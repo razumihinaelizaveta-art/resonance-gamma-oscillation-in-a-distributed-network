@@ -1,6 +1,9 @@
 # Data and Video files
 *.npz
 
-# Python cache files
+# Python files
 __pycache__/
 *.py[cod]
+test.ipynb
+.vscode
+PyramidalModel.ipynb

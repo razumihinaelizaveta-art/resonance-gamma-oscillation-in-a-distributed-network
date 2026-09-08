@@ -1,7 +1,7 @@
 geometry:
     # brain area to simulate neurons in
-    L: 150
-    H: 150
+    L: 750
+    H: 750
 
 
 populations:
@@ -11,6 +11,8 @@ populations:
         
         # If you want to add some constant, write it here in the format const: value (or formula)
         const:
+            modelbase: json.load( open("pvbc-ViaEtAl2022-RomanDB.json") ) # reading model base for PV+ basket cell
+            neuronid :  np.random.randint(modelbase["number_of_models"],size=num_neurons) # randomly distribute model parameters through population
             eps: 1.e-9*mV
             
             FactorScaleKV3: 1
@@ -21,7 +23,8 @@ populations:
 
             ENa: 50*mV
             EK: -90*mV
-            Esyn: -75*mV
+            Esyn_inh: -75*mV
+            Esyn_exc: 0*mV
 
             km2: 0.1
             kh1: 0.012
@@ -42,20 +45,11 @@ populations:
             siga1: 12.0*mV
             siga2: -80.0*mV
 
-            gL: 14.705184211981187*nS
-            EL: -71.97508650437244*mV
-            taum: 5.222681687884308310*ms
-            Rin: 1.0e3/(gL/nS)*Mohm
-            Cap: taum/Rin
+            gLs  : 'np.array(modelbase["gL"])[neuronid]*nS'
+            Rin  : '1000.0/(gLs/nS)*Mohm'
+            taums: 'np.array(modelbase["taum"])[neuronid]*ms'
+            Els  : 'np.array(modelbase["EL"])[neuronid]*mV'
 
-            gNa: 16804.9678*nS
-            gKv3: 631.700393*nS
-            gKv1: 59.0431313*nS
-
-            thm1: -52.9951244*mV
-            thh2: -55.7111801*mV
-            thn1: 5.90077045*mV
-            tha1: 51.3553887*mV
         # If you want to add some equation, write it here, but be sure after last equation new line is present
         equations:
             gat_vars: |
@@ -80,31 +74,63 @@ populations:
                 IKv1 = -gKv1*a**4*(v-EK) : ampere
                 IL   = -gL*(v-EL) : ampere
 
+                taum : second
+                EL   : volt
+                gL   : siemens
+                Cap  : farad
+                gNa  : siemens
+                gKv3 : siemens
+                gKv1 : siemens
+                thm1 : volt
+                thh2 : volt
+                thn1 : volt
+                tha1 : volt
+
             ext_eqs: |
-                I : ampere 
+                Isin   : ampere
+                Inoise : ampere
+                I0     : ampere
+                I=I0+Isin*cos(t/ms * 2*pi/200)+Inoise*rand() : ampere (constant over dt)
 
             eqs_syn: |
-                Isyn = norm_syn*(synb-syna)*(Esyn-v) : amp
-                dsyna/dt = -syna/tau_syn_a/ms : 1
-                dsynb/dt = -synb/tau_syn_b/ms : 1
+                Isyn_inh = norm_syn*(synb_inh-syna_inh)*(Esyn_inh-v) : amp
+                Isyn_exc = norm_syn*(synb_exc-syna_exc)*(Esyn_exc-v) : amp
+                dsyna_inh/dt = -syna_inh/tau_syn_a/ms : 1
+                dsynb_inh/dt = -synb_inh/tau_syn_b/ms : 1
+                dsyna_exc/dt = -syna_exc/tau_syn_a/ms : 1
+                dsynb_exc/dt = -synb_exc/tau_syn_b/ms : 1
 
             volt_eqs: |
-                dv/dt = (  INa + IKv1 + IKv3 + IL + I + Isyn )/Cap : volt 
+                dv/dt = (INa + IKv1 + IKv3 + IL + I + Isyn_inh + Isyn_exc)/Cap : volt
 
             # gathering all equations together
-            general_equ: volt_eqs + gat_vars + ext_eqs +  eqs_syn
+            general_equ: volt_eqs + gat_vars + ext_eqs + eqs_syn
 
         specs:
             method: exponential_euler
             threshold: v>-30*mV
             refractory: v>=-30*mV
         initials:
-            v: EL + rnd.random(num_neurons)*10*mV
+            v: Els + rnd.random(num_neurons)*10*mV
             m: 0.01
             h: 0.99
             n: 0.01
             a: 0.01
-            I: 229*pA # minimal applied current to generate PIR
+            taum : taums
+            EL   : Els
+            gL   : gLs
+            Cap  : taums/Rin
+            gNa  : np.array(modelbase["gNa" ])[neuronid]*nS
+            gKv3 : np.array(modelbase["gKv3"])[neuronid]*nS
+            gKv1 : np.array(modelbase["gKv1"])[neuronid]*nS
+            thm1 : np.array(modelbase["thm1"])[neuronid]*mV
+            thh2 : np.array(modelbase["thh2"])[neuronid]*mV
+            thn1 : np.array(modelbase["thn1"])[neuronid]*mV
+            tha1 : np.array(modelbase["tha1"])[neuronid]*mV
+            #I0: 229*pA
+            I0: np.array(modelbase["pir_threshold"])[neuronid] * (1.0 + 0.1* np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150) )*pA
+            Isin: 0*pA #229*pA + np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150)*40*pA
+            Inoise: 0*pA #70*pA
     
     pyr:
         dencity: 3600e-6*1.5
@@ -172,16 +198,17 @@ synapses:
         general:
             model: 'gsyn:1'
             on_pre: |
-                    syna_post += gsyn
-                    synb_post += gsyn     
+                    syna_exc_post += gsyn
+                    synb_exc_post += gsyn     
         geometry:
            type: 'lognormal'
            mu: 5.0063
            sigma: 0.5630
+           scale : 0.1
         conductance:
-            type: 'exponential'
-            max: 0.00005
-            sigma: 70
+            type: 'linear'
+            offset: 0.00005
+            slope: -0.0000001648648649
         delay:
             type: 'linear'
             min: 0.1
