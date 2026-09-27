@@ -115,6 +115,15 @@ def connectivity(conname:str,desc:dict,source_pos:np.array,target_pos:np.array,L
             for (pre,post,_d_),p in zip(d,prob)
             if np.random.random() < p and (pre != post or selfid)
         ]
+    elif geometry['type'] == 'stretched_exponential':
+        chack_requred_names(geometry,['pmax','sigma','power],conname+': geometry')
+        pmax,psigma,power = geometry['pmax'], geometry['sigma'], geometry['power']
+        prob = pmax*np.exp(-(d['distance']/psigma)**power)
+        connectivity = [
+            [pre,post,_d_]
+            for (pre,post,_d_),p in zip(d,prob)
+            if np.random.random() < p and (pre != post or selfid)
+        ]
     else:
         raise RuntimeError(f"{conname}: Unknown type of connectivity!")
         
