@@ -116,7 +116,7 @@ def connectivity(conname:str,desc:dict,source_pos:np.array,target_pos:np.array,L
             if np.random.random() < p and (pre != post or selfid)
         ]
     elif geometry['type'] == 'stretched_exponential':
-        chack_requred_names(geometry,['pmax','sigma','power],conname+': geometry')
+        chack_requred_names(geometry,['pmax','sigma','power'],conname+': geometry')
         pmax,psigma,power = geometry['pmax'], geometry['sigma'], geometry['power']
         prob = pmax*np.exp(-(d['distance']/psigma)**power)
         connectivity = [
