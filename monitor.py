@@ -48,7 +48,7 @@ class MyMonitor:
             ax_flat[i].set_title(f'Distance over conductance for {name}')
             ax_flat[i].set_xlabel('Distance')
             ax_flat[i].set_ylabel('Conductance')
-            ax_flat[i].scatter(data[:,2], data[:,3])
+            ax_flat[i].scatter(data[:,2], data[:,3], rasterized=True, alpha=0.1, s=1)
             ax_flat[i].text(0.35, 0.95, text, transform=ax_flat[i].transAxes, fontsize=10-r, verticalalignment='top')
 
             i += 1
