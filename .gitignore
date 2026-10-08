@@ -5,5 +5,7 @@
 __pycache__/
 *.py[cod]
 test.ipynb
+test_pyr2pvbc_raw.yaml
+test.png
 .vscode
 PyramidalModel.ipynb
