@@ -1,0 +1,37 @@
+{
+    "Citation": "Fernando R. Fernandez, Guillem Via, Carmen C. Canavier, John A. White. Kinetics and Connectivity Properties of Parvalbumin- and Somatostatin-Positive Inhibition in Layer 2/3 Medial Entorhinal Cortex. ENEURO.0441-21.2022 1\u0432\u0402\u201c14, doi.org/10.1523/ENEURO.0441-21.2022",
+    "Description": "MEC L2/3 PV+ BC to Stellate cell. Probabilities derived from paired recording distance bins in Figure 2Ciii.",
+    "Observed probabilities": [
+        [
+            0.0,
+            50.0,
+            0.5555555556
+        ],
+        [
+            50.0,
+            100.0,
+            0.5454545455
+        ],
+        [
+            100.0,
+            250.0,
+            0.1666666667
+        ],
+        [
+            250.0,
+            1000.0,
+            1e-06
+        ]
+    ],
+    "The Best Distribution": {
+        "type": "hill_powerlaw",
+        "pmax": 0.5506131032856347,
+        "L12": 144.5691065849716,
+        "power": 17.060179736479995
+    },
+    "Fitting errors": {
+        "RMSE(log)": 0.002786448024528394,
+        "AIC": -41.06390082983406,
+        "BIC": -42.90501774647439
+    }
+}
