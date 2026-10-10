@@ -56,7 +56,8 @@ class MyMonitor:
             ax_flat[i].set_title(f'Histogram of conductance for {name}')
             ax_flat[i].set_xlabel('Conductance')
             ax_flat[i].set_ylabel('LogScale')
-            ax_flat[i].hist(data[:,3], bins=150, log=True)
+            # ax_flat[i].hist(data[:,3], bins=100, log=True)
+            ax_flat[i].hist(data[:,3], bins=50, log=True)
 
             i += 1
 
