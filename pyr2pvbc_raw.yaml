@@ -1,9 +1,9 @@
 geometry:
     # brain area to simulate neurons in
-    #L: 750
-    #H: 750
-    L: 300
-    H: 300
+    L: 750
+    H: 750
+    #L: 300
+    #H: 300
     #L: 150
     #H: 150
 
@@ -138,7 +138,7 @@ populations:
             tha1 : np.array(modelbase["tha1"])[neuronid]*mV
             #I0: 229*pA
             #I0: np.array(modelbase["pir_threshold"])[neuronid] * (1.0 + 0.1* np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150) )*pA
-            Isin: 0*pA #229*pA + np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150)*40*pA
+            Isin: -70*pA #229*pA + np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150)*40*pA
             Inoise: 0*pA #70*pA
     
     stl:
@@ -277,7 +277,7 @@ synapses:
             power : 17.060179736479995
         conductance:
             type: 'linear'
-            offset: 0.025 #0.00005
+            offset: 0.01 #0.00005
             slope: -0.0000001648648649
         delay:
             type: 'linear'
