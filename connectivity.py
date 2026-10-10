@@ -124,6 +124,15 @@ def connectivity(conname:str,desc:dict,source_pos:np.array,target_pos:np.array,L
             for (pre,post,_d_),p in zip(d,prob)
             if np.random.random() < p and (pre != post or selfid)
         ]
+    elif geometry['type'] == 'hill_powerlaw':
+        chack_requred_names(geometry,['pmax', 'L12', 'power'],conname+': geometry')
+        pmax,L12,power = geometry['pmax'], geometry['L12'], geometry['power']
+        prob = pmax / (1 + (d['distance'] / L12)**power)
+        connectivity = [
+            [pre,post,_d_]
+            for (pre,post,_d_),p in zip(d,prob)
+            if np.random.random() < p and (pre != post or selfid)
+        ]
     else:
         raise RuntimeError(f"{conname}: Unknown type of connectivity!")
         
