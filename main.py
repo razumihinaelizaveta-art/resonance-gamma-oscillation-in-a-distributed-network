@@ -301,9 +301,9 @@ if __name__ == '__main__':
 
     figure(figsize=(12,6))
     ax = subplot(221)
-    xlim(0,500)
-    xlabel('t (ms)')
-    plot(S.t/ms,S.i,'k.')
+    # xlim(0,500)
+    # xlabel('t (ms)')
+    plot(S.t/ms,S.i,'r.',ms=4)
     subplot(222,sharex=ax)
     for i in range(recorded_exc_ids.shape[0]):
         plot(M.t / ms, M.v[i] / mV+10*i)
@@ -311,9 +311,9 @@ if __name__ == '__main__':
     ylabel('v (mV)')
     
     subplot(223,sharex=ax)
-    xlim(0,500)
-    xlabel('t (ms)')
-    plot(E.t/ms,E.i,'k.')
+    # xlim(0,500)
+    # xlabel('t (ms)')
+    plot(E.t/ms,E.i,'b.',ms=4)
 
     subplot(224,sharex=ax)
     for i in range(recorded_exc_ids.shape[0]):
