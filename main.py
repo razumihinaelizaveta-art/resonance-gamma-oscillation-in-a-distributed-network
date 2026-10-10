@@ -271,12 +271,16 @@ if __name__ == '__main__':
     active_synapses = [syn_obj.synapses for syn_obj in syns.values()]
 
     # build the network containing only active objects
-    recorded_ids = np.random.choice(pops['pvbc'].num_neurons,20,replace=False)
+    recorded_inh_ids = np.random.choice(pops['pvbc'].num_neurons,20,replace=False)
 
-    M = b2.StateMonitor(pops['pvbc'].neurons, 'v', record=recorded_ids)
+    M = b2.StateMonitor(pops['pvbc'].neurons, 'v', record=recorded_inh_ids)
     S = b2.SpikeMonitor(pops['pvbc'].neurons)
+    
+    recorded_exc_ids = np.random.choice(pops['stl'].num_neurons,20,replace=False)
+    E = b2.SpikeMonitor(pops['stl'].neurons)
+    P = b2.StateMonitor(pops['stl'].neurons, 'v', record=recorded_exc_ids)
 
-    net = b2.Network(active_neurons, active_synapses, M, S)
+    net = b2.Network(active_neurons, active_synapses, M, S, E, P)
     
     print(f'The model fom file `{args.filename}` is fully created... running')
 
@@ -288,21 +292,32 @@ if __name__ == '__main__':
         positions  = pops['pvbc'].coord_grid,
         spikes     = np.column_stack((S.t/ms, S.i)),
         voltages   = np.column_stack([M.t/ms]+[ _x_ for _x_ in M.v]),
-        voltage_id = recorded_ids,
-        features   = pops['pvbc'].neurons.I0
+        voltage_id = recorded_inh_ids,
+        # features   = pops['pvbc'].neurons.I0
     )
     np.savez(args.output,**res)
     print(f'Results are saved into `{args.output}`')
 
 
     figure(figsize=(12,6))
-    subplot(121)
+    ax = subplot(221)
     xlim(0,500)
     xlabel('t (ms)')
     plot(S.t/ms,S.i,'k.')
-    subplot(122)
-    for i in range(recorded_ids.shape[0]):
+    subplot(222,sharex=ax)
+    for i in range(recorded_exc_ids.shape[0]):
         plot(M.t / ms, M.v[i] / mV+10*i)
     xlabel('t (ms)')
     ylabel('v (mV)')
-#    show()
+    
+    subplot(223,sharex=ax)
+    xlim(0,500)
+    xlabel('t (ms)')
+    plot(E.t/ms,E.i,'k.')
+
+    subplot(224,sharex=ax)
+    for i in range(recorded_exc_ids.shape[0]):
+        plot(P.t / ms, P.v[i] / mV+10*i)
+    xlabel('t (ms)')
+    ylabel('v (mV)')
+    show()
