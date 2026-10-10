@@ -1,7 +1,11 @@
 geometry:
     # brain area to simulate neurons in
-    L: 750
-    H: 750
+    #L: 750
+    #H: 750
+    L: 300
+    H: 300
+    #L: 150
+    #H: 150
 
 
 populations:
@@ -17,9 +21,13 @@ populations:
             
             FactorScaleKV3: 1
 
-            norm_syn: 1*msiemens
-            tau_syn_a: 0.8
-            tau_syn_b: 2
+            norm_syn_inh : 1*msiemens
+            tau_syn_a_inh: 0.38 # from https://doi.org/10.1523/ENEURO.0441-21.2022
+            tau_syn_b_inh: 2
+
+            norm_syn_exc : 1*msiemens
+            tau_syn_a_exc: 0.8 # need to find real number here
+            tau_syn_b_exc: 2
 
             ENa: 50*mV
             EK: -90*mV
@@ -89,16 +97,17 @@ populations:
             ext_eqs: |
                 Isin   : ampere
                 Inoise : ampere
-                I0     : ampere
-                I=I0+Isin*cos(t/ms * 2*pi/200)+Inoise*rand() : ampere (constant over dt)
+                # I0     : ampere
+                # I=I0+Isin*cos(t/ms * 2*pi/200)+Inoise*rand() : ampere (constant over dt)
+                I=Isin*0.5*(1-cos(t/ms * 2*pi/200))+Inoise*rand() : ampere (constant over dt)
 
             eqs_syn: |
-                Isyn_inh = norm_syn*(synb_inh-syna_inh)*(Esyn_inh-v) : amp
-                Isyn_exc = norm_syn*(synb_exc-syna_exc)*(Esyn_exc-v) : amp
-                dsyna_inh/dt = -syna_inh/tau_syn_a/ms : 1
-                dsynb_inh/dt = -synb_inh/tau_syn_b/ms : 1
-                dsyna_exc/dt = -syna_exc/tau_syn_a/ms : 1
-                dsynb_exc/dt = -synb_exc/tau_syn_b/ms : 1
+                Isyn_inh = norm_syn_inh*(synb_inh-syna_inh)*(Esyn_inh-v) : amp
+                Isyn_exc = norm_syn_exc*(synb_exc-syna_exc)*(Esyn_exc-v) : amp
+                dsyna_inh/dt = -syna_inh/tau_syn_a_inh/ms : 1
+                dsynb_inh/dt = -synb_inh/tau_syn_b_inh/ms : 1
+                dsyna_exc/dt = -syna_exc/tau_syn_a_exc/ms : 1
+                dsynb_exc/dt = -synb_exc/tau_syn_b_exc/ms : 1
 
             volt_eqs: |
                 dv/dt = (INa + IKv1 + IKv3 + IL + I + Isyn_inh + Isyn_exc)/Cap : volt
@@ -128,20 +137,22 @@ populations:
             thn1 : np.array(modelbase["thn1"])[neuronid]*mV
             tha1 : np.array(modelbase["tha1"])[neuronid]*mV
             #I0: 229*pA
-            I0: np.array(modelbase["pir_threshold"])[neuronid] * (1.0 + 0.1* np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150) )*pA
+            #I0: np.array(modelbase["pir_threshold"])[neuronid] * (1.0 + 0.1* np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150) )*pA
             Isin: 0*pA #229*pA + np.exp(-(H*(np.sin(positions[:,0]*np.pi*2/L)+1)/2-positions[:,1])**2/150)*40*pA
             Inoise: 0*pA #70*pA
     
-    pyr:
-        dencity: 3600e-6*1.5
+    stl:
+        dencity: 3600e-6*1.5*4
         num_neurons: L*H*dencity   # let it be the same for now
         
         # If you want to add some constant, write it here in the format const: value (or formula)
         const:
 
-            norm_syn: 1*msiemens
-            tau_syn_a: 0.8
-            tau_syn_b: 2
+            norm_syn_inh: 1*msiemens
+            tau_syn_a_inh: 0.6   # from https://doi.org/10.1523/ENEURO.0441-21.2022
+            tau_syn_b_inh: 12.25
+            
+
             Esyn_inh: -75*mV
             Esyn_exc: 0*mV
 
@@ -179,15 +190,16 @@ populations:
                 Iapp : amp
 
             eqs_syn: |
-                Isyn_inh = norm_syn*(synb_inh-syna_inh)*(Esyn_inh-v) : amp
-                Isyn_exc = norm_syn*(synb_exc-syna_exc)*(Esyn_exc-v) : amp
-                dsyna_inh/dt = -syna_inh/tau_syn_a/ms : 1
-                dsynb_inh/dt = -synb_inh/tau_syn_b/ms : 1
-                dsyna_exc/dt = -syna_exc/tau_syn_a/ms : 1
-                dsynb_exc/dt = -synb_exc/tau_syn_b/ms : 1
+                Isyn_inh = norm_syn_inh*(synb_inh-syna_inh)*(Esyn_inh-v) : amp
+                dsyna_inh/dt = -syna_inh/tau_syn_a_inh/ms : 1
+                dsynb_inh/dt = -synb_inh/tau_syn_b_inh/ms : 1
+                #Isyn_exc = norm_syn*(synb_exc-syna_exc)*(Esyn_exc-v) : amp
+                #dsyna_exc/dt = -syna_exc/tau_syn_a/ms : 1
+                #dsynb_exc/dt = -synb_exc/tau_syn_b/ms : 1
+                Isyn = Isyn_inh : amp
 
             volt_eqs: |
-                dv/dt = (gna*h*m**3*(Ena - v) + gk*n**4*(Ek - v) + gm*a*(Ek - v) + gl*(El - v) + Iapp + Isyn_inh + Isyn_exc)/Cm  : volt
+                dv/dt = (gna*h*m**3*(Ena - v) + gk*n**4*(Ek - v) + gm*a*(Ek - v) + gl*(El - v) + Iapp + Isyn)/Cm  : volt
 
             # gathering all equations together
             general_equ: gat_vars + volt_eqs + ext_eqs + eqs_syn
@@ -197,7 +209,7 @@ populations:
             threshold: v>0*mV
             refractory: v>-30*mV
         initials:
-            v: El
+            v: El + rnd.random(num_neurons)*20*mV
             m: 0.01
             h: 0.99
             n: 0.01
@@ -206,8 +218,8 @@ populations:
 
                            
 synapses:
-    pyr2pv:
-        source: 'pyr'     # this is the name of predifined neuron group in this file
+    stl2pv:
+        source: 'stl'     # this is the name of predifined neuron group in this file
         target: 'pvbc'     # this is the name of predifined neuron group in this file
         general:
             model: 'gsyn:1'
@@ -215,62 +227,62 @@ synapses:
                     syna_exc_post += gsyn
                     synb_exc_post += gsyn     
         geometry:
-           type: 'lognormal'
-           mu: 5.0063
-           sigma: 0.5630
-           scale : 0.1
+            type  : "hill_powerlaw"
+            pmax  : 0.5506131032856347
+            L12   : 144.5691065849716
+            power : 17.060179736479995
         conductance:
             type: 'linear'
-            offset: 0.00005
+            offset: 0.000025
             slope: -0.0000001648648649
         delay:
             type: 'linear'
-            min: 0.1
-            k:   50
+            min: 0.4
+            k:   1000 # non myelenated axons
 
-    pyr2pyr:
-        source: 'pyr'     # this is the name of predifined neuron group in this file
-        target: 'pyr'     # this is the name of predifined neuron group in this file
-        general:
-            model: 'gsyn:1'
-            on_pre: |
-                    syna_exc_post += gsyn
-                    synb_exc_post += gsyn     
-        geometry:
-           type: 'lognormal'
-           mu: 5.0063
-           sigma: 0.5630
-           scale : 0.1
-        conductance:
-            type: 'linear'
-            offset: 0.00005
-            slope: -0.0000001648648649
-        delay:
-            type: 'linear'
-            min: 0.1
-            k:   50
+    #pyr2pyr:
+        #source: 'pyr'     # this is the name of predifined neuron group in this file
+        #target: 'pyr'     # this is the name of predifined neuron group in this file
+        #general:
+            #model: 'gsyn:1'
+            #on_pre: |
+                    #syna_exc_post += gsyn
+                    #synb_exc_post += gsyn     
+        #geometry:
+           #type: 'lognormal'
+           #mu: 5.0063
+           #sigma: 0.5630
+           #scale : 0.1
+        #conductance:
+            #type: 'linear'
+            #offset: 0.00005
+            #slope: -0.0000001648648649
+        #delay:
+            #type: 'linear'
+            #min: 0.1
+            #k:   50
         
-    pv2pyr:
+    pv2stl:
         source: 'pvbc'     # this is the name of predifined neuron group in this file
-        target: 'pyr'     # this is the name of predifined neuron group in this file
+        target: 'stl'     # this is the name of predifined neuron group in this file
         general:
             model: 'gsyn:1'
             on_pre: |
                     syna_inh_post += gsyn
                     synb_inh_post += gsyn     
         geometry:
-           type: 'lognormal'
-           mu: 5.0063
-           sigma: 0.5630
-           scale : 0.1
+            type  : "hill_powerlaw"
+            pmax  : 0.5506131032856347
+            L12   : 144.5691065849716
+            power : 17.060179736479995
         conductance:
             type: 'linear'
-            offset: 0.00005
+            offset: 0.025 #0.00005
             slope: -0.0000001648648649
         delay:
             type: 'linear'
-            min: 0.1
-            k:   50
+            min: 0.4
+            k:   1000
     
     pv2pv:
         source: 'pvbc'     # this is the name of predifined neuron group in this file
@@ -281,16 +293,16 @@ synapses:
                     syna_inh_post += gsyn
                     synb_inh_post += gsyn     
         geometry:
-           type: 'lognormal'
-           mu: 5.0063
-           sigma: 0.5630
-           scale : 0.1
+            type  : "stretched_exponential"
+            pmax  : 0.6751463152220595
+            sigma : 159.00552989382751
+            power : 8.903913818696052
         conductance:
             type: 'linear'
             offset: 0.00005
             slope: -0.0000001648648649
         delay:
             type: 'linear'
-            min: 0.1
-            k:   50
+            min: 0.4
+            k:   1000
         
