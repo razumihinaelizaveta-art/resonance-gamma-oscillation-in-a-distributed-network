@@ -1,4 +1,5 @@
 import yaml
+import datetime
 import json
 from numpy import *
 from matplotlib.pyplot import *
@@ -6,6 +7,7 @@ from brian2 import *
 from numpy import random as rnd
 from connectivity import connectivity
 import argparse
+import textwrap
 
 def uniform_points_grid(L: int, H: int, N: int) -> np.array:
     """distribute given num_neurons (N) in the given 2D space L*H"""
@@ -245,7 +247,11 @@ if __name__ == '__main__':
     with open(args.filename, 'r') as file:
         f = yaml.safe_load(file)  
     print(f'Loaded a model file `{args.filename}`')
-        
+
+    # extract simulation and recording parameters from the YAML file
+    simulation_params = f['simulation']
+    recording_params = f['recording']
+
     pops = {}
     syns = {}
     geometry = f['geometry']
@@ -261,63 +267,112 @@ if __name__ == '__main__':
 
 
     import brian2 as b2
-    b2.defaultclock.dt = 0.05*b2.ms
+
+    time_step = simulation_params['time_step']
+    b2.defaultclock.dt = time_step*b2.ms
+
     # clears any ghost objects left over from previous cell runs
     b2.device.reinit()
     b2.start_scope()
 
-    # extract brian2 objects from your instances
+    # extract brian2 objects from instances
     active_neurons  = [pop_obj.neurons  for pop_obj in pops.values()]
     active_synapses = [syn_obj.synapses for syn_obj in syns.values()]
 
     # build the network containing only active objects
-    recorded_inh_ids = np.random.choice(pops['pvbc'].num_neurons,20,replace=False)
+    n_record = recording_params['n_record']   # recording section of YAML
+    inh_pop = recording_params['inh_pop']     # recording section of YAML
+    exc_pop = recording_params['exc_pop']     # recording section of YAML
+    general_annotation = recording_params['annotation']  # recording section of YAML
+    monitors = []
 
-    M = b2.StateMonitor(pops['pvbc'].neurons, 'v', record=recorded_inh_ids)
-    S = b2.SpikeMonitor(pops['pvbc'].neurons)
+    if inh_pop:
+        print(f'Recording {n_record} neurons from inhibitory population: {inh_pop}')
+        recorded_inh_ids = np.random.choice(pops[inh_pop].num_neurons, n_record, replace=False)
+        M = b2.StateMonitor(pops[inh_pop].neurons, 'v', record=recorded_inh_ids)
+        S = b2.SpikeMonitor(pops[inh_pop].neurons)
+        monitors.extend([M, S])
     
-    recorded_exc_ids = np.random.choice(pops['stl'].num_neurons,20,replace=False)
-    E = b2.SpikeMonitor(pops['stl'].neurons)
-    P = b2.StateMonitor(pops['stl'].neurons, 'v', record=recorded_exc_ids)
+    if exc_pop:
+        print(f'Recording {n_record} neurons from excitatory population: {exc_pop}')
+        recorded_exc_ids = np.random.choice(pops[exc_pop].num_neurons, n_record, replace=False)
+        E = b2.SpikeMonitor(pops[exc_pop].neurons)
+        P = b2.StateMonitor(pops[exc_pop].neurons, 'v', record=recorded_exc_ids)
+        monitors.extend([E, P])
 
-    net = b2.Network(active_neurons, active_synapses, M, S, E, P)
+    net = b2.Network(active_neurons, active_synapses, *monitors)
     
-    print(f'The model fom file `{args.filename}` is fully created... running')
+    print(f'The model from file `{args.filename}` is fully created... running')
 
     # run the explicit network instead of the global magic system
-    net.run(1500 * b2.ms, report='text')
+    duration = simulation_params['duration']
+    net.run(duration*b2.ms, report='text')
 
+    if inh_pop and recording_params['inh_save']:
+        res_inh = dict(
+            positions  = pops['pvbc'].coord_grid,
+            spikes     = np.column_stack((S.t/ms, S.i)),
+            voltages   = np.column_stack([M.t/ms]+[ _x_ for _x_ in M.v]),
+            voltage_id = recorded_inh_ids,
+            # features   = pops['pvbc'].neurons.I0
+        )
+        if recording_params['inh_annotation']:
+            annotation = textwrap.dedent(f"""\
+                            Date of recording: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.
+                            Used YAML file: {args.filename}.
+                            Recorded from {n_record} neurons of `{inh_pop}` population.
+                            The simulation duration is {duration} ms. The time step is {time_step} ms.
+                          """)
+            if general_annotation:
+                annotation = annotation + '\n' + general_annotation
+            res_inh['annotation'] = annotation
+        np.savez(inh_pop + '_' + args.output, **res_inh)
+        print(f'Results for `{inh_pop}` are saved into `{inh_pop}_{args.output}`')
 
-    res = dict(
-        positions  = pops['pvbc'].coord_grid,
-        spikes     = np.column_stack((S.t/ms, S.i)),
-        voltages   = np.column_stack([M.t/ms]+[ _x_ for _x_ in M.v]),
-        voltage_id = recorded_inh_ids,
-        # features   = pops['pvbc'].neurons.I0
-    )
-    np.savez(args.output,**res)
-    print(f'Results are saved into `{args.output}`')
+    if exc_pop and recording_params['exc_save']:
+        res_exc = dict(
+            positions  = pops['stl'].coord_grid,
+            spikes     = np.column_stack((E.t/ms, E.i)),
+            voltages   = np.column_stack([P.t/ms]+[ _x_ for _x_ in P.v]),
+            voltage_id = recorded_exc_ids,
+            # features   = pops['stl'].neurons.I0
+        )
+        if recording_params['exc_annotation']:
+                   annotation = textwrap.dedent(f"""\
+                                   Date of recording: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.
+                                   Used YAML file: {args.filename}.
+                                   Recorded from {n_record} neurons of `{exc_pop}` population.
+                                   The simulation duration is {duration} ms. The time step is {time_step} ms.
+                                 """)
+                   if general_annotation:
+                       annotation = annotation + '\n' + general_annotation
+                   res_exc['annotation'] = annotation
+        np.savez(exc_pop + '_' + args.output, **res_exc)
+        print(f'Results for `{exc_pop}` are saved into `{exc_pop}_{args.output}`')
 
+    if recording_params['show_plots']:
+        figure(figsize=(12,6))
+        if inh_pop:
+            ax = subplot(221)
+            # xlim(0,500)
+            # xlabel('t (ms)')
+            plot(S.t/ms,S.i,'r.',ms=4)
+            subplot(222,sharex=ax)
+            for i in range(recorded_inh_ids.shape[0]):
+                plot(M.t / ms, M.v[i] / mV+10*i)
+            xlabel('t (ms)')
+            ylabel('v (mV)')
 
-    figure(figsize=(12,6))
-    ax = subplot(221)
-    # xlim(0,500)
-    # xlabel('t (ms)')
-    plot(S.t/ms,S.i,'r.',ms=4)
-    subplot(222,sharex=ax)
-    for i in range(recorded_exc_ids.shape[0]):
-        plot(M.t / ms, M.v[i] / mV+10*i)
-    xlabel('t (ms)')
-    ylabel('v (mV)')
-    
-    subplot(223,sharex=ax)
-    # xlim(0,500)
-    # xlabel('t (ms)')
-    plot(E.t/ms,E.i,'b.',ms=4)
+        if exc_pop:
+            subplot(223,sharex=ax)
+            # xlim(0,500)
+            # xlabel('t (ms)')
+            plot(E.t/ms,E.i,'b.',ms=4)
 
-    subplot(224,sharex=ax)
-    for i in range(recorded_exc_ids.shape[0]):
-        plot(P.t / ms, P.v[i] / mV+10*i)
-    xlabel('t (ms)')
-    ylabel('v (mV)')
-    show()
+            subplot(224,sharex=ax)
+            for i in range(recorded_exc_ids.shape[0]):
+                plot(P.t / ms, P.v[i] / mV+10*i)
+            xlabel('t (ms)')
+            ylabel('v (mV)')
+
+        show()
