@@ -10,7 +10,8 @@ geometry:
 
 populations:
     pvbc:
-        dencity: 3600e-6*1.5
+        #dencity: 3600e-6*1.5 # from Prelimbic area, layer 5 in https://bbp.epfl.ch/nexus/cell-atlas/
+        dencity: 3093.2e-6*1.5 # from combined Layer 2/3 in https://bbp.epfl.ch/nexus/cell-atlas/
         num_neurons: L*H*dencity   # formula to compute dencity, however number also may be used
         
         # If you want to add some constant, write it here in the format const: value (or formula)
@@ -142,7 +143,8 @@ populations:
             Inoise: 0*pA #70*pA
     
     stl:
-        dencity: 3600e-6*1.5*4
+        #dencity: 3600e-6*1.5*4
+        dencity: 3093.2e-6*1.5*4
         num_neurons: L*H*dencity   # let it be the same for now
         
         # If you want to add some constant, write it here in the format const: value (or formula)
