@@ -308,80 +308,44 @@ synapses:
 
 simulation:
     run: True                                        # if run is False, Network is built, so you can investigate it parameters
-    n_runs: 2                                        # number of simulation runs, should be >0
-    pops_to_include: ['pvbc', 'stl']                 # specify which populations should participate in simulation
-    syns_to_include: ['stl2pv', 'pv2pv', 'pv2stl']   # specify which synapses should participate in simulation
     time_step: 0.05                                  # simulation time step in ms
     duration: 1500                                   # simulation duration in ms
-    connectivity:
-        save: True                                  # you save connectivity from this simulation (even if it wasn't run)
-        file_format: '.npz'                         # format should be compatible with numpy.savez
-        annotation_state: True                      # annotate conectivity file or not
-        annotation: ''                              # you may add you custom annotation to predifined one
 
-recording:
-    pvbc:  # name of population to record from (from this file)
-        state: True         # include this population in recordings or not 
-        constants:          # if you want to use some constants in further evaluations, define them in this dict
-            n_record: 20    # amount of neurons to record from this population
-        equations:          # if you want to use some equation results in further evaluations, define equations in this dict
-            record_id: 'np.random.choice(num_neurons, n_record, replace=False)' # num_neurons is the total count of neurons in this population
-    
-        stateMonitor:
-            # this part is built on brian2.StateMonitor, any additional "key" will be sent to brian directly
-            # 
-            variables: 'v'   # what to record from this population - str or list
-            record: 'record_id' # from constants above
-
-        spikeMonitor:
-            # this part is built on brian2.SpikeMonitor, any additional "key" will be sent to brian directly
-        
-        save_res: True          # save inhibitory population results into .npz or not
-        output:
-            # here you can create and customize a dict with simulation results
-            # you can add cunstom keys; values can rely on variables generated inside Population class
-            positions: 'coord_grid'    # from Population class
-            spikes: 'np.column_stack((spikeM.t/ms, spikeM.i))'   # from Simulation class
-            voltages: 'np.column_stack([stateM.t/ms]+[ _x_ for _x_ in stateM.v])'   # from Simulation class
-            voltage_id: 'record_id'    # from Simulation class
-        
-        annotation: 
-            state: True     # if True adds annotation column in output file
-            # add custom annotation about recording if you want to, otherwise only hardcoded text will be used
-            text: ''        
-
-        file_name: 'test'   # main part of the file name
-        file_format: '.npz' # format should be compatible with numpy.savez
-            
-    stl:    # name of population to record from (from this file)
-        state: True         # include this population in recordings or not 
-        constants:          # if you want to use some constants in further evaluations, define them in this dict
-            n_record: 20    # amount of neurons to record from this population
-        equations:          # if you want to use some equation results in further evaluations, define equations in this dict
-            record_id: 'np.random.choice(num_neurons, n_record, replace=False)' # num_neurons is the total count of neurons in this population
-    
-        stateMonitor:
-            # this part is built on brian2.StateMonitor, any additional "key" will be sent to brian directly
-            # 
-            variables: 'v'   # what to record from this population - str or list
-            record: 'record_id' # from constants above
-
-        spikeMonitor:
-            # this part is built on brian2.SpikeMonitor, any additional "key" will be sent to brian directly
-        
-        save_res: True          # save inhibitory population results into .npz or not
-        output:
-            # here you can create and customize a dict with simulation results
-            # you can add cunstom keys; values can rely on variables generated inside Population class
-            positions: 'coord_grid'    # from Population class
-            spikes: 'np.column_stack((spikeM.t/ms, spikeM.i))'   # from Simulation class
-            voltages: 'np.column_stack([stateM.t/ms]+[ _x_ for _x_ in stateM.v])'   # from Simulation class
-            voltage_id: 'record_id'    # from Simulation class
-        
-        annotation: 
-            state: True     # if True adds annotation column in output file
-            # add custom annotation about recording if you want to, otherwise only hardcoded text will be used
-            text: ''        
-
-        file_name: 'test'   # main part of the file name
-        file_format: '.npz' # format should be compatible with numpy.savez
+record:
+    filename: record.npz # can be change through command like
+    annotation: '' # add annotation to the npz file
+    model : true #safe model file into the npz file
+    map   : true #safe map of all recorded variables into the npz file
+    spikes:
+        pvbc_spikes:
+            population: pvbc
+        stl_spikes:
+            population: stl
+    static:
+        pvbc_positions:
+            object    : pvbc
+            variable  : positions
+        stl_positions:
+            object    : stl
+            variable  : positions
+        stl2pvbc:
+            object    : stl2pv
+            variable  : connectivity
+        pvbc2pvbc:
+            object    : pv2pv
+            variable  : connectivity
+        stl_Iapp:
+            object    : stl
+            variable  : neurons.Iapp[:]
+    states:
+        pvbc_voltages:
+            object    : pvbc
+            variable  : neurons # name of brian object in the population or synapses
+            states    : ['v']
+            record    : 'np.sort(np.random.choice(num_neurons, 20, replace=False)).tolist()'
+        stl_states:
+            object    : stl
+            variable  : neurons
+            states    : ['v','n']
+            record    : 'np.sort(np.random.choice(num_neurons, 20, replace=False)).tolist()'
+         
