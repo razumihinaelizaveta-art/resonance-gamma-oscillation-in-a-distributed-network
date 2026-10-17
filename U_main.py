@@ -134,6 +134,8 @@ class Population:
             else:
                 setattr(self.neurons, name, value)      # adding variable "name" with value "expr" to the instance namespace
                 self.namespace[name] = value            # updating instance namespace with new variable
+    def get_brian_object(self):
+        return [ self.neurons ] 
 
 class Syns:
     """instance for working with synapses"""
@@ -226,7 +228,8 @@ class Syns:
             delay*ms
             for pre,post,d,gsyn,delay in self.connectivity
                               ]
-        
+    def get_brian_object(self):
+        return [ self.synapses ] 
         # if self.file['connect']:
         #     for key, value in self.file['connect'].items():
         #         if isinstance(value, str):
@@ -237,224 +240,245 @@ class Syns:
         #             setattr(self.synapses, key, value)
         #             self.namespace[key] = value
 
-class BrianSimulation:
-    """Runs brian2 simulation"""
-
-    def __init__(self, config_file: dict):
-        """config_file - general dict recreated from YAML"""
-
-        self.config_file = config_file
-        self.sim_params = config_file['simulation']
-
-    def _get_pops(self) -> dict:
-        """Creates dict with population: instance"""
-
-        pops = {}
-        geometry = self.config_file['geometry']
-        for pop in self.config_file['populations']:
-            pops[pop] = Population(self.config_file['populations'][pop], population=pop, geometry=geometry)
-
-        return pops
-
-    def _get_syns(self) -> dict:
-        """Creates dict with synapses: instance"""
-
-        syns = {}
-        for syn in self.config_file['synapses']:
-            syns[syn] = Syns(self.config_file['synapses'][syn], self.pops, connection_name=syn)
-
-        return syns
-
-    def get_monitors(self) -> list:
-        """Creates list of monitors for brian network simulation"""
-
-        recordings = {}
-
-        for pop in self.sim_params['pops_to_include']:
-            if self.config_file['recording'][pop]['state']:
-                recordings[pop] = BrianSimulationOutput(config_file=self.config_file, 
-                                                        pop=pop, 
-                                                        pops=self.pops, 
-                                                        syns=self.syns, 
-                                                        sim_params=self.sim_params)
+class Recorder:
+    def __init__(self, rectype:str, recname:str, config: dict, pops:dict, syns:dict):
+        """
+            rectype - type of recorder: spikes, static, or states
+            recname - name of the record variable
+            config  - recorder configuration
+            pops    - dict of populations
+            syns    - dict of synaptic connections between populations
+        """
         
-        monitors = []
-        for rec in recordings.keys():
-            monitors.append(recordings[rec].stateM)
-            monitors.append(recordings[rec].spikeM)
+        self.config  = config
+        self.rectype = rectype
+        self.recname = recname
+        if   rectype == 'spikes':
+            self._set_spike_monitor(config, pops, syns)
+        elif rectype == 'static':
+            self._set_static_record(config, pops, syns)
+        elif rectype == 'states':
+            self._set_state_monitor(config, pops, syns)
+        else:
+            raise RuntimeError(f"Unknown type of recorder `{rectype}` for recorder `{self.recname}`" )
 
-        return (monitors, recordings)
+    def _set_spike_monitor(self, config: dict, pops:dict, syns:dict):
+        if not 'population' in config:
+            raise RuntimeError(f"There is no `population` entrance in spike recorder `{self.recname}`")
+        if not config['population'] in pops:
+            raise RuntimeError(f" Population {config['population']} needed for spike recorder `{self.recname}` is not in the network" )
+        self.recorder = SpikeMonitor( pops[ config['population'] ].neurons )
 
-    def run(self):
-        """Runs brian2 simulation based on YAML inputs"""
+    def _set_static_record(self, config: dict, pops:dict, syns:dict):
+        objs = syns | pops
+        if not 'object' in config:
+            raise RuntimeError(f"There is no `object` entrance in static recorder `{self.recname}`")
+        if not config['object'] in objs:
+            raise RuntimeError(f" object {config['object']} needed for static recorder `{self.recname}` is not in the network" )
+        if not 'variable' in config:
+            raise RuntimeError(f"There is no `variable` entrance in static recorder `{self.recname}`")
+        self.namespace = globals().copy() | objs[ config['object'] ].namespace
+        self.recorder  = eval(config['variable'], self.namespace )
 
-        n_runs = self.sim_params["n_runs"]
-        print(f'Total number of simulation runs: {n_runs}')
-        for i in range(n_runs):
-            print(f'Creating model for simulation {i+1} of {n_runs}...')
+    def _set_state_monitor(self, config: dict, pops:dict, syns:dict):
+        objs = syns | pops
+        if not 'object' in config:
+            raise RuntimeError(f"There is no `object` entrance in states recorder `{self.recname}`")
+        if not config['object'] in objs:
+            raise RuntimeError(f" object {config['object']} needed for states recorder `{self.recname}` is not in the network" )
+        
+        self.namespace = globals().copy() | objs[ config['object'] ].namespace.copy()
 
-            b2.defaultclock.dt = self.sim_params['time_step']*b2.ms
-            ## clears any ghost objects left over from previous runs
-            b2.device.reinit()
-            b2.start_scope()
+        if not 'variable' in config:
+            raise RuntimeError(f"There is no `variable` entrance in states recorder `{self.recname}`")
+        if not type(config['variable']) is str:
+            raise RuntimeError(f"The `variable` entrance is not a string in states recorder `{self.recname}`")
+        
+        # Checking states
+        if not 'states' in config:
+            raise RuntimeError(f"There is no `states` entrance in states recorder `{self.recname}`")
+        if not type(config['states']) is list:
+            raise RuntimeError(f"The `states` entrance is not a list in states recorder `{self.recname}`")
+        for ni,n in enumerate( config['states'] ):
+            if not type(n) is str:
+                raise RuntimeError(f"The entrance #{ni+1} in `states` list of the states recorder `{self.recname}` is not a string")
+        self.states = config['states']
+        
+        # Check record
+        if not 'record' in config:
+            raise RuntimeError(f"There is no `record` entrance in states recorder `{self.recname}`")
+        if type(config['record']) is list:
+            for ni,n in enumerate( config['record'] ):
+                if not type(n) is int:
+                    raise RuntimeError(f"The entrance #{ni+1} in `record` list of the states recorder `{self.recname}` is not an integer")
+            self.record = config['record']
+        elif type(config['record']) is str:
+            try:
+                self.record = eval(config['record'],self.namespace)
+                # self.record = [ int(r) for r in self.record ]
+                # #DB>>
+                # print(f'{self.recname}.record = {self.record}')
+                # #<<DB
+            except BaseException as e:
+                raise RuntimeError(f"Cannot convert `record` of the states recorder `{self.recname}` into an object: {e}")
+        elif type(config['record']) is bool:
+            pass
+        else:
+            raise RuntimeError(f"Incorrect type of entrance `record` for the states recorder `{self.recname}`. It should be a list of integers, boolian, or string")
+        
+        self.recorded_object = eval(config['variable'],self.namespace)
 
-            self.pops = self._get_pops()
-            self.syns = self._get_syns()
-            active_neurons  = self.sim_params['pops_to_include']
-            active_neurons  = [pop_obj[1].neurons for pop_obj in self.pops.items() if pop_obj[0] in active_neurons]
-            active_synapses = self.sim_params['syns_to_include']
-            active_synapses = [syn_obj[1].synapses for syn_obj in self.syns.items() if syn_obj[0] in active_synapses]
-            monitors, recordings = self.get_monitors()
+        self.recorder = StateMonitor(
+            self.recorded_object,
+            self.states, 
+            record=self.record)
 
-            if self.sim_params['connectivity']['save']:
-                connectivity = {}
-                """Each key in the dictionary is a synapse name, and the value is a numpy array of connectivity data;
-                   First "column" in array is presynaptic neuron index, second is postsynaptic neuron index, third is distance, 
-                   fourth is synaptic conductance, fifth is synaptic delay"""
+    def get_brian_object(self):
+        if   self.rectype == 'static': return []
+        elif self.rectype == 'spikes': return [ self.recorder ]
+        elif self.rectype == 'states': return [ self.recorder ]
 
-                for name, syn in self.syns.items():
-                    connectivity[name] = {
-                                        'presynaptic_id': np.array(syn.connectivity)[:, 0],
-                                        'postsynaptic_id': np.array(syn.connectivity)[:, 1],
-                                        'distance': np.array(syn.connectivity)[:, 2],
-                                        'conductance': np.array(syn.connectivity)[:, 3],
-                                        'delay': np.array(syn.connectivity)[:, 4]
-                                         }
-                
-                for name, con in connectivity.items():
-                    file_name = f'{i+1}_' + f'connectivity_{name}' + self.sim_params['connectivity']['file_format']
-                    if self.sim_params['connectivity']['annotation_state']:
-                        annotation = textwrap.dedent(f"""\
-                                            Connectivity for synapses: {name}.
-                                            Created: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.
-                                            Used YAML file: {args.filename}.""")
-                        annotation = self.sim_params['connectivity']['annotation'] + '\n' + annotation
-                        con['annotation'] = annotation
+    def serialize(self):
+        if   self.rectype == 'static':
+            return {self.recname:self.recorder}
+        elif self.rectype == 'spikes':
+            return {
+                self.recname:
+                np.column_stack( (self.recorder.t/ms, self.recorder.i) )
+            }
+        elif self.rectype == 'states': 
+            return {
+                self.recname+'_ids'   : self.record, 
+                self.recname+'_states': self.states,
+                self.recname+'_time'  : self.recorder.t/ms,
+            } | { self.recname+'_'+n: getattr(self.recorder,n).T for n in self.states }
 
-                        print(f'Saving connectivity for synapses: {name}')
-                        np.savez(file_name, **con)
+class Record:
+    def __init__(self, config: dict, pops:dict, syns:dict, model:str):
+        """
+            config  - entire configuration of all recordings
+            pops    - dict of populations
+            syns    - dict of synaptic connections between populations
+            model   - name of model YAML file
+        """
+        if not 'filename' in config:
+            self.filename = None
+            from warnings import warn
+            warn("There is no file name in the record section of YAML. All simulation results will be save in memory and lost if not plotted")
+        elif not type( config['filename'] ) is str:
+            raise BaseException('`filename` is not a string')
+        else:
+            self.filename = config['filename']
+        self.annotation = config.get('annotation',None)
+        self.model      = config.get('model', True)
+        self.map        = config.get('map', True)
+        self.modelfile  = model
+        self.config     = config
+        self.recoders   = [
+                            Recorder(
+                                'spikes',
+                                recname, 
+                                config['spikes'][recname],
+                                pops , syns)
+                            for recname in config['spikes']
+                        ] if 'spikes' in config else []
+        self.recoders  += [
+                            Recorder(
+                                'static',
+                                recname, 
+                                config['static'][recname],
+                                pops , syns)
+                            for recname in config['static']
+                        ] if 'static' in config else []
+        self.recoders  += [
+                            Recorder(
+                                'states',
+                                recname, 
+                                config['states'][recname],
+                                pops , syns)
+                            for recname in config['states']
+                        ] if 'states' in config else []
+    
+    def get_brian_object(self):
+        ret = []
+        for rec in self.recoders:
+            ret += rec.get_brian_object()
+        return ret
+    
+    def serialize(self ):
+        ret = {}
+        
+        for rec in self.recoders:
+            ret = ret | rec.serialize()
             
-            if self.sim_params['run']:
-                net = b2.Network(active_neurons, active_synapses, *monitors)
-                print(f'The model from file `{args.filename}` is fully created... running')
-                net.run(self.sim_params['duration']*b2.ms, report='text')
-                for pop in recordings.keys():
-                    if self.config_file['recording'][pop]['save_res']:
-                        output_file = recordings[pop].extract_results(prefix=f'{i+1}_')
-                        print(f'Results for `{pop}` are saved into `{output_file}`')
-
-class BrianSimulationOutput:
-    """Configure the simulation parameters and recording settings"""
-
-    def __init__(self, config_file: dict, pop: str, pops: dict, syns: dict, sim_params: dict):
-        """pop - population of neurons found in the recording section of YAML"""
-
-        self.config_file = config_file
-        self.rec = self.config_file['recording'][pop]
-        self.pop = pop
-        self.pops = pops
-        self.syns = syns
-        self.sim_params = sim_params
-
-        population = self.pops[pop]
-        self.namespace = globals().copy()             # get access to the variables in the global space
-        self.namespace.update(vars(population))       # add variadbles from Population instance
-        self.namespace.update(self.rec['constants'])  # add user defined constants from YAML
-        eqs = {}
-        for k,v in self.rec['equations'].items():
-            if isinstance(v, str):
-                eqs[k] = eval(v, self.namespace)
-            else:
-                eqs[k] = v
-        self.namespace.update(eqs)                    # add results of user defined equations from YAML
-
-        self.stateM = self._set_state_monitor()
-        self.namespace.update({'stateM': self.stateM})
-        self.spikeM = self._set_spike_monitor()
-        self.namespace.update({'spikeM': self.spikeM})
-
-    def _set_state_monitor(self):
-        """Set state monitor"""
-
-        sm = self.rec['stateMonitor']
-        variables = sm['variables']
-        monitor_kwargs = {}
-        
-
-        for k, v in sm.items():                       # recollecting all parameters except variables into dict 
-            if k == 'variables':
-                continue
-            if isinstance(v, str):
-                try:
-                    v = eval(v, self.namespace)
-                    monitor_kwargs[k] = v
-                except Exception as e:
-                    raise ValueError(f"Failed to evaluate '{k}': '{v}'. Error: {e}")
-            else:
-                monitor_kwargs[k] = v
-
-        return b2.StateMonitor(self.namespace['neurons'], variables, **monitor_kwargs)
-
-    def _set_spike_monitor(self):
-        """Set spike monitor"""
-
-        monitor_kwargs = {}
-        sm = self.rec['spikeMonitor']
-
-        if self.rec['spikeMonitor']:
-            for k, v in sm.items():
-                if isinstance(v, str):
-                    try:
-                        v = eval(v, self.namespace)
-                    except Exception as e:
-                        raise ValueError(f"Failed to evaluate '{k}': '{v}'. Error: {e}")
-                else:
-                    monitor_kwargs[k] = v
-        
-        return b2.SpikeMonitor(self.namespace['neurons'], **monitor_kwargs)
-
-    def _build_results(self):
-        
-        results = {}
-        for k,v in self.rec['output'].items():
-            if isinstance(v, str):
-                results[k] = eval(v, self.namespace)
-            else:
-                results[k] = v
-        return results
-
-    def extract_results(self, prefix):
-        results = self._build_results()
-
-        file_name = prefix + self.pop + '_' + self.rec['file_name'] + self.rec['file_format']
-
-        ann = self.rec['annotation']
-        if ann['state']:
-            annotation = textwrap.dedent(f"""\
-                            Date of recording: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.
-                            Used YAML file: {args.filename}.
-                            Recorded from {self.namespace['n_record']} neurons of `{self.pop}` population.
-                            The simulation duration is {self.sim_params['duration']} ms. The time step is {self.sim_params['time_step']} ms.
-                                        """)
-            if ann['text']:
-                annotation = ann['text'] + '\n' + annotation
-            results['annotation'] = annotation
-
-        np.savez(file_name, **results)
-        return file_name
-             
-
+        if self.annotation:
+            ret['annotation'] = self.annotation
+        if self.model:
+            with open(self.modelfile) as fd:
+                ret['model'] = fd.read()
+        if self.map:
+            ret['map'] = [ n for n in ret ] 
+        if self.filename:
+            np.savez(self.filename, **ret)
+            print(f"Save results in to `{self.filename}`")
+        return ret
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Give script a file and get output from it")
     parser.add_argument("filename", type=str, help="The name or path of the YAML file to load")
+    parser.add_argument("-o","--output", type=str, default=None, help="The name of the .npz file to store data in")
+    parser.add_argument("--do-not-simulate", default=True, action='store_false', help="Set to abort simulation from CLI")
     args = parser.parse_args()
 
     with open(args.filename, 'r') as file:
         f = yaml.safe_load(file)  
     print(f'Loaded a model file `{args.filename}`')
 
-    import brian2 as b2
+    # extract simulation and recording parameters from the YAML file
+    simulation_params = f['simulation']
+    record_params     = f['record']
+    if args.output:
+        record_params['filename'] = args.output
+        
 
-    simulation = BrianSimulation(f)
-    simulation.run()
+    pops = {}
+    syns = {}
+    geometry = f['geometry']
+
+    for pop in f['populations']:
+        pops[pop] = Population(f['populations'][pop], population=pop, geometry=geometry)
+        #test = Population(f['populations'][pop], population=pop, geometry=geometry)
+
+    for syn in f['synapses']:
+        syns[syn] = Syns(f['synapses'][syn], pops, connection_name=syn)
+        #test = Syns(f['synapses'][syn], neurons=pops, connection_name=syn)
+
+    recorder = Record(record_params,pops,syns,args.filename)
+
+
+    import brian2 as b2
+    if 'time_step' in simulation_params:
+        time_step = simulation_params['time_step']
+        b2.defaultclock.dt = time_step*b2.ms
+
+    # clears any ghost objects left over from previous cell runs
+    b2.device.reinit()
+    b2.start_scope()
+    brain_objects = []
+    for pop in pops:
+        brain_objects += pops[pop].get_brian_object()
+    for syn in syns:
+        brain_objects += syns[syn].get_brian_object()
+    brain_objects += recorder.get_brian_object()
+    net = b2.Network(brain_objects)
+    print(f'The model from file `{args.filename}` is fully created... running')
+    
+    duration = simulation_params.get('duration',100)
+    sim_run  = simulation_params.get('run',True) and args.do_not_simulate
+    if not sim_run:
+        print("Simulation is aborted, relax!")
+        exit(0)
+    net.run(duration*b2.ms, report='text')
+    
+    allrecordings = recorder.serialize()
+    
