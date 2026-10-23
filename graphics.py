@@ -83,7 +83,7 @@ class VisualizItem:
                 cmap = plt.get_cmap(layer.get('color_map', 'viridis'))
                 self.views[pop] = \
                     self.axis.scatter(pos[:, 0], pos[:, 1],\
-                    c=values, vmin=np.amin(values), vmax=np.amax(values),\
+                    c=values, vmin=np.amin(values), vmax=np.amax(values), cmap=cmap,\
                     s=size, marker=marker,\
                     alpha=act_alpha)
             else:
