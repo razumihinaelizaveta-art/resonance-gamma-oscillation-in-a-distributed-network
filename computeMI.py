@@ -21,6 +21,15 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-S",
+        "--spike-array",
+        type=str,
+        default="spikes",
+        help="An array used for features (default is spikes)"
+    )
+
+    parser.add_argument(
+        "-F",
         "--feature-array",
         type=str,
         default="positions",
@@ -49,6 +58,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-o",
         "--output",
         type=str,
         default="results.json",
@@ -73,13 +83,13 @@ def parse_arguments():
 
 
 # load the data
-def load_data(filename,feature_array):
+def load_data(filename,feature_array, spike_array):
     """Load neuron positions and spike events from an NPZ file."""
 
     data = np.load(filename, allow_pickle=True)
 
     features   = data[feature_array]#.astype(float)
-    spikes_raw = data["spikes"]
+    spikes_raw = data[spike_array]
 
     
     return features, spikes_raw
@@ -249,7 +259,7 @@ def main():
 
     args = parse_arguments()
 
-    feature, spikes_raw = load_data(args.input, args.feature_array)
+    feature, spikes_raw = load_data(args.input, args.feature_array, args.spike_array)
 
     (
         feature,
@@ -287,6 +297,7 @@ def main():
     results = {
     "input_file": args.input,
     "feature_array": args.feature_array,
+    "spike_array": args.spike_array,
     "remove_first_ms": args.remove_first,
     "remove_last_ms": args.remove_last,
     "neurons_requested": args.keep_neurons,
