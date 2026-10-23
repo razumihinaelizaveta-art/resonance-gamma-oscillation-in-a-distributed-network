@@ -1,5 +1,5 @@
 
-
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from   matplotlib.animation import FuncAnimation
@@ -227,6 +227,8 @@ class Visualizer:
 
             self.figures[fig_name] = fig
             self.axes[fig_name] = {}
+            if 'background' in fig_cfg:
+                fig.patch.set_facecolor('xkcd:{}'.format(fig_cfg['background']) )
             
             
             for plot_name, plot_cfg in fig_cfg.get('plots', {}).items():
@@ -265,7 +267,6 @@ class Visualizer:
                         colspan=w,
                         fig=fig,
                     )
-                    self.axes[fig_name][plot_name] = (ax, fig)
                     if not time_axis:
                         time_axis = ax
                 else:
@@ -276,7 +277,11 @@ class Visualizer:
                         colspan=w,
                         fig=fig,
                     )
-                    self.axes[fig_name][plot_name] = (ax, fig)
+
+                if 'background' in plot_cfg:
+                    ax.set_facecolor('xkcd:{}'.format(plot_cfg['background']) )
+                self.axes[fig_name][plot_name] = (ax, fig)
+                    
                     
                 self.plots.append( VisualizItem(\
                                     plot_name, plot_cfg, data,\
@@ -395,8 +400,13 @@ class Visualizer:
         
         if not self.video:
             for fig in self.figures:
-                self.figures[fig].canvas.draw_idle()
-                # self.figures[fig].canvas.draw()
+                # self.figures[fig].canvas.draw_idle()
+                self.figures[fig].canvas.draw()
+        if self.video:
+            r = int( np.floor(self.current_time) )
+            if r%5 == 0:
+                sys.stderr.write(f"Video: Recorded {self.current_time:0.1f} of {self.time_end:0.1f}ms\r")
+            
         return updated
     # Export figures.
     def _export(self,event=None):
@@ -442,24 +452,26 @@ class Visualizer:
         if not v_stop : v_stop  = self.time_end
         
         cur_time = self.current_time
+        end_time = self.time_end
         n_frames = int ( round( (v_stop - v_start)/self.dt ) )
         
         for fig in self.figures:
             self.current_time = v_start
+            self.time_end     = v_stop
             self._update()
             anim = FuncAnimation(self.figures[fig], lambda k: self._update(1),
                          frames=n_frames, blit=False)
             out_path = f"{prefix}-{fig}.{vformat}"
             try:
                 anim.save(out_path, writer=writer, dpi=95)
-                print("saved:", out_path)
+                print(f"saved: {out_path:<90}" )
             except Exception as err:
                 print("SAVING FAILED:", err)
                 if vformat == 'mp4':
                     print("  mp4 needs ffmpeg on your PATH - try SAVE_FORMAT='gif' instead.")
         
         self.current_time = cur_time
-         
+        self.time_end     = end_time 
 
 
                     
