@@ -196,6 +196,7 @@ class Visualizer:
         self.config           = config
         self.data             = data
         self.video            = video
+        self.export_only      = export_only
 
         self.playback         = config.get('playback', {})
         self.figures_cfg      = config.get('figures', {})
@@ -377,9 +378,9 @@ class Visualizer:
                 self.current_time += self.dt
             elif direction < 0:
                 self.current_time -= self.dt
-            if not self.video:
+            if not (self.video or self.export_only):
                 self.time_slider.set_val( self.current_time )
-        elif not self.video:
+        elif not (self.video or self.export_only):
             self.current_time = self.time_slider.val
         if self.current_time > self.time_end:
             self.current_time = self.time_end
@@ -387,7 +388,7 @@ class Visualizer:
                 
         if self.current_time < 0.0:
             self.current_time = 0.0
-        
+
         updated = []
         for o in self.plots:
             updated += o.update(self.current_time, self.tail_time)
@@ -402,6 +403,10 @@ class Visualizer:
         prefix  = self.export.get('prefix', '')
         export  = self.export.get('figures', True)
         formats = self.export.get('formats',['svg','jpg'])
+        e_start = self.export.get('t_start', None)
+        if e_start:
+            self.current_time = e_start
+            self._update()
         if not export: return
         if type(formats) is str:
             if " " in formats or "," in formats:
@@ -468,6 +473,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--config' , default=None , type=str           , help="Read model configuration from different file")
     parser.add_argument('--export-only'  , default=False, action='store_true', help="Export figures and exit")
     parser.add_argument('--export-video' , default=False, action='store_true', help="Export Video and exit")
+    parser.add_argument('--export-time'  , default=None , type=float         , help="Export figures at specific time point")
     args = parser.parse_args()
 
     npz = np.load(args.npz, allow_pickle=True)
@@ -488,4 +494,7 @@ if __name__ == '__main__':
         model = yaml.safe_load(model_yaml)
     
     config = model['visualize'] if 'visualize' in model else model
+    if args.export_time:
+        config['export']['t_start'] = args.export_time
+        
     visualizer = Visualizer(config, data, export_only=args.export_only, video=args.export_video)
