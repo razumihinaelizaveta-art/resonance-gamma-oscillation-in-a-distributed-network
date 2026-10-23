@@ -325,9 +325,23 @@ class Recorder:
             pass
         else:
             raise RuntimeError(f"Incorrect type of entrance `record` for the states recorder `{self.recname}`. It should be a list of integers, boolian, or string")
-        
         self.recorded_object = eval(config['variable'],self.namespace)
 
+        # Check scales:
+        if not 'scales' in config:
+            self.scales = [ 1.0 for n in self.states]
+        elif not type(config['scales']) is list:
+            raise RuntimeError(f"Incorrect type of entrance `scales` for the states recorder `{self.recname}`. It should be a list of floats")
+        elif len(config['scales']) != len(self.states):
+            raise RuntimeError(f"Size of list `scales` does not match size of list states for the states recorder `{self.recname}`")
+        for scli,scl in enumerate(config['scales']):
+            if type(scl) is str:
+                config['scales'][scli] = eval(scl, self.namespace)
+            scl = config['scales'][scli]
+            # if not (type(scl) is float or type(scl) is int):
+                # raise RuntimeError(f"Entrance #{scli+1} in the list `scales` is not a float for the states recorder `{self.recname}`")
+        self.scales = config['scales']
+        
         self.recorder = StateMonitor(
             self.recorded_object,
             self.states, 
@@ -351,7 +365,7 @@ class Recorder:
                 self.recname+'_ids'   : self.record, 
                 self.recname+'_states': self.states,
                 self.recname+'_time'  : self.recorder.t/ms,
-            } | { self.recname+'_'+n: getattr(self.recorder,n).T for n in self.states }
+            } | { self.recname+'_'+n: getattr(self.recorder,n).T*s for n,s in zip(self.states,self.scales) }
 
 class Record:
     def __init__(self, config: dict, pops:dict, syns:dict, model:str):
@@ -428,6 +442,11 @@ if __name__ == '__main__':
     parser.add_argument("filename", type=str, help="The name or path of the YAML file to load")
     parser.add_argument("-o","--output", type=str, default=None, help="The name of the .npz file to store data in")
     parser.add_argument("--do-not-simulate", default=True, action='store_false', help="Set to abort simulation from CLI")
+    parser.add_argument("--save-only"    , default=False, action='store_true', help="Save npz file and exit")
+    parser.add_argument("--not-shown"    , default=False, action='store_true', help="do not show anything on the screen, but export")
+    parser.add_argument('--export-only'  , default=False, action='store_true', help="Export figures and exit")
+    parser.add_argument('--export-video' , default=False, action='store_true', help="Export Video and exit")
+
     args = parser.parse_args()
 
     with open(args.filename, 'r') as file:
@@ -481,4 +500,15 @@ if __name__ == '__main__':
     net.run(duration*b2.ms, report='text')
     
     allrecordings = recorder.serialize()
+    if args.save_only:
+        exit(0)
+    
+    if 'visualize' in f:
+        visual_config = f['visualize']
+        if args.not_shown:
+            args.export_only  = True
+            args.export_video = True
+            
+        from graphics import Visualizer
+        visualizer = Visualizer(visual_config, allrecordings, export_only=args.export_only, video=args.export_video)
     
