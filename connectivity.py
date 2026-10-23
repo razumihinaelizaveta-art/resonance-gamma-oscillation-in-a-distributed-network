@@ -83,7 +83,7 @@ def connectivity(conname:str,desc:dict,source_pos:np.array,target_pos:np.array,L
         from scipy.stats import lognorm
         chack_requred_names(geometry,['sigma','mu'],conname+': geometry')
         sigma, mu = geometry['sigma'], geometry['mu']
-        scale     = geometry['scale'] if 'scale' in geometry else 1.0
+        scale     = geometry.get('scale', 1.0 )
         # PDF value at this distance
         pdf_val = lognorm.pdf(np.array([_d_ for _,_,_d_ in d]), s=sigma, scale=np.exp(mu))
         # Peak PDF value (at distance = e^mu)
