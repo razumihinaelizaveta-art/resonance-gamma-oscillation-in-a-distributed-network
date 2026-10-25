@@ -177,6 +177,7 @@ class Syns:
             self.target.coord_grid,
             self.source.L,
             self.source.H)
+        self.namespace['connectivity'] = self.connectivity
         
         #DB>>
         con_stats = []
