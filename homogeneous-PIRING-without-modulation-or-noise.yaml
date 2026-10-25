@@ -1,0 +1,249 @@
+geometry:
+    # brain area to simulate neurons in
+    L: 750
+    H: 750
+
+
+populations:
+    pvbc:
+        dencity: 3093.2e-6*1.5 # from combined Layer 2/3 in https://bbp.epfl.ch/nexus/cell-atlas/
+        num_neurons: L*H*dencity   # formula to compute dencity, however number also may be used
+        
+        # this model for layer II/II parvalbumin-positive + fast spiking basket of the medial entorhinal cortex
+        # from https://doi.org/10.1371/journal.pcbi.1010094
+        const:
+            eps: 1.e-9*mV
+            
+            FactorScaleKV3: 1
+
+            norm_syn: 1*msiemens
+            tau_syn_a: 0.8
+            tau_syn_b: 2
+            #tau_syn_b: 3.7
+
+            ENa: 50*mV
+            EK: -90*mV
+            Esyn: -75*mV
+
+            km2: 0.1
+            kh1: 0.012
+            kh2: 0.2
+            kn1: 1.0*FactorScaleKV3
+            kn2: 0.001*FactorScaleKV3
+            ka2: 0.02
+
+            sigm1: 4.0*mV
+            sigm2: -13.0*mV
+
+            sigh1: -20.0*mV
+            sigh2: 3.5*mV
+
+            sign1: 12.0*mV
+            sign2: -8.5*mV
+
+            siga1: 12.0*mV
+            siga2: -80.0*mV
+
+            gL: 14.705184211981187*nS
+            EL: -71.97508650437244*mV
+            taum: 5.222681687884308310*ms
+            Rin: 1.0e3/(gL/nS)*Mohm
+            Cap: taum/Rin
+
+            gNa: 16804.9678*nS
+            gKv3: 631.700393*nS
+            gKv1: 59.0431313*nS
+
+            thm1: -52.9951244*mV
+            thh2: -55.7111801*mV
+            thn1: 5.90077045*mV
+            tha1: 51.3553887*mV
+        # If you want to add some equation, write it here, but be sure after last equation new line is present
+        equations:
+            gat_vars: |
+                alpham = 1.0/exprel(-(v-thm1-eps)/sigm1)/ms : Hz
+                betam = km2*exp(v/sigm2)/ms    : Hz
+                minf  = alpham/(alpham+betam)  : 1
+                dm/dt = alpham*(1-m) - betam*m : 1
+                
+                alphah = kh1*exp(v/sigh1)/ms : Hz
+                betah = kh2*(sigh2/mV)/exprel(-(v-thh2)/sigh2)/ms : Hz
+                hinf  = alphah/(alphah+betah)  : 1
+                dh/dt = alphah*(1-h) - betah*h : 1
+                
+                alphan = kn1*(sign1/mV)/exprel(-(v-thn1)/sign1)/ms : Hz
+                betan = kn2*exp(v/sign2)/ms : Hz
+                ninf  = alphan/(alphan+betan)  : 1
+                dn/dt = alphan*(1-n) - betan*n : 1
+                
+                alphaa = (siga1/mV)/exprel(-(v-tha1)/siga1)/ms : Hz
+                betaa = ka2*exp(v/siga2)/ms : Hz
+                ainf  = alphaa/(alphaa+betaa)  : 1
+                da/dt = alphaa*(1-a) - betaa*a : 1
+                
+                INa  = -gNa*m**3*h*(v-ENa) : ampere
+                IKv3 = -gKv3*n**4*(v-EK) : ampere
+                IKv1 = -gKv1*a**4*(v-EK) : ampere
+                IL   = -gL*(v-EL) : ampere
+
+            ext_eqs: |
+                Itheta : ampere
+                Inoise : ampere
+                I0     : ampere
+                I      = I0+Itheta*(cos(t/ms * 2*pi/200) + 1)/2 + Inoise*2*(rand()-0.5): ampere (constant over dt)
+
+            eqs_syn: |
+                Isyn = norm_syn*(synb-syna)*(Esyn-v) : amp
+                dsyna/dt = -syna/tau_syn_a/ms : 1
+                dsynb/dt = -synb/tau_syn_b/ms : 1
+
+            volt_eqs: |
+                dv/dt = (  INa + IKv1 + IKv3 + IL + I + Isyn )/Cap : volt 
+
+            # gathering all equations together
+            general_equ: volt_eqs + gat_vars + ext_eqs +  eqs_syn
+
+        specs:
+            method: exponential_euler
+            threshold: v>-30*mV
+            refractory: v>=-30*mV
+        initials:
+            # Random initial condition to produce a few spikes and initiate oscillations.
+            v: -56.991140032388174*mV + (1.5 - rnd.random(num_neurons)*3 )*mV
+            m: 0.06772995653233334
+            h: 0.26343341031186707
+            n: 0.29083117896347765
+            a: 0.2416253671302876
+            I0     : 229*pA # The minimal depolarization to reach PIR quasi-threshold
+            Inoise : 0*pA   # No noise
+            Itheta : 0*pA   # No theta modulation
+
+synapses:
+    pv2pv:
+        source: 'pvbc'     # this is the name of predifined neuron group in this file
+        target: 'pvbc'     # this is the name of predifined neuron group in this file
+        general:
+            model: 'gsyn:1'
+            on_pre: |
+                    syna_post += gsyn
+                    synb_post += gsyn
+        # Geometry parameters are results of fitting distribution
+        # to data from doi.org:10.1523/ENEURO.0441-21.2022
+        geometry:
+            type  : "stretched_exponential"
+            pmax  : 0.6751463152220595
+            sigma : 159.00552989382751
+            power : 8.903913818696052
+        conductance:
+            type: 'linear'
+            offset: 0.000025
+            slope: -0.0000000824324324
+        delay:
+            type: 'linear'
+            min: 0.4
+            k:   200 # to fit min, max and mean delays in PV+ -> PV+ connections:
+                     # doi.org:10.1523/ENEURO.0441-21.2022 Figure 6 Aiii
+            
+simulation:
+    run: True                                        # if run is False, Network is built, so you can investigate it parameters
+    time_step: 0.01                                  # simulation time step in ms
+    duration : 200                                   # simulation duration in ms
+
+record:
+    filename  : homogeneous-PIRING-without-modulation-or-noise.npz # can be change through command like
+    annotation: 'homogeneous PIR-ING, locally connected network without noise or theta modulation' # add annotation to the npz file
+    model     : true #safe model file into the npz file
+    map       : true #safe map of all recorded variables into the npz file
+    spikes:
+        pvbc_spikes:
+            population: pvbc
+    static:
+        pvbc_positions:
+            object    : pvbc
+            variable  : positions
+        pvbc2pvbc:
+            object    : pv2pv
+            variable  : connectivity
+    states:
+        pvbc_voltages:
+            object    : pvbc
+            variable  : neurons # name of brian object in the population or synapses
+            states    : ['v']
+            scales    : [1/mV]
+            record    : 'np.sort(np.random.choice(num_neurons, 20, replace=False)).tolist()'
+
+###################         Visualizations              #####################
+visualize:
+    playback:
+        t_start : 0
+        t_stop  : null
+        dt      : 1.0
+        fps     : 30
+        tail_time        : 10
+        tail_exponential : true #false
+
+    export:
+        #Show figures and GUI
+        show    : true
+        #Export Figures
+        figures : true
+        prefix  : homogeneous-PIRING-without-modulation-or-noise
+        formats:
+            - jpg
+            - svg
+        #Export video
+        video        : true
+        video_prefix : homogeneous-PIRING-without-modulation-or-noise
+        video_format : gif
+        video_fps    : 30
+        t_start      : null
+        t_stop       : null
+
+    figures:
+        spikes:
+            size : [24,12]
+            grid:
+                rows : 2
+                cols : 4
+            plots:
+                plot2D:
+                    type : spatial
+                    position : [ 0, 0]
+                    width  : 2
+                    height : 2
+                    spatial:
+                        pvbc:
+                            positions : pvbc_positions
+                            spikes    : pvbc_spikes
+                            color     : black
+                            size      : 20
+                raster:
+                    type : raster
+
+                    position : [2,0]
+
+                    width  : 2
+                    height : 1
+
+                    raster:
+                        pvbc:
+                            spikes : pvbc_spikes
+                            color  : black
+                            marker : '.'
+                            size   : 1
+
+                voltages:
+                    type: trace
+                    position : [2,1]
+
+                    width  : 2
+                    height : 1
+
+                    offset : 30
+                    
+                    traces:
+                        pvbc:
+                            source : pvbc_voltages
+                            state  : v
+                            color  : black
+                            #neurons : 'pvbc_voltages_ids[:10]'
