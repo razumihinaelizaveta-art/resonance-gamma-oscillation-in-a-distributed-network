@@ -56,6 +56,12 @@ def parse_arguments():
         default=None,
         help="Keep only the first N neurons for the analysis."
     )
+    # parser.add_argument(
+        # "--max-ISI",
+        # type=float,
+        # default=None,
+        # help="Maximum ISI"
+    # )
 
     parser.add_argument(
         "-o",
