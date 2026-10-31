@@ -16,7 +16,7 @@ populations:
             
             FactorScaleKV3: 1
 
-            norm_syn: 1*msiemens
+            norm_syn: 1*nS
             tau_syn_a: 0.8
             tau_syn_b: 2
             #tau_syn_b: 3.7
@@ -136,8 +136,8 @@ synapses:
             power : 8.903913818696052
         conductance:
             type: 'linear'
-            offset: 0.00005
-            slope: -0.0000001648648649
+            offset: 35.0
+            slope: -0.056486
         delay:
             type: 'linear'
             min: 0.4

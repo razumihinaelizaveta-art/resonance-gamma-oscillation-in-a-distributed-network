@@ -1,14 +1,7 @@
 #! /bin/bash
 
-python main.py homogeneous-PIRING-without-modulation-or-noise.yaml --not-shown
-python graphics.py homogeneous-PIRING-without-modulation-or-noise.npz --export-video
-
-python main.py homogeneous-PIRING-with-noise-no-modulation.yaml --not-shown
-python graphics.py homogeneous-PIRING-with-noise-no-modulation.npz --export-video
-
-python main.py homogeneous-PIRING-with-noise-and-modulation.yaml --not-shown
-python graphics.py homogeneous-PIRING-with-noise-and-modulation.npz --export-video
-
-python main.py homogeneous-PIRING-with-noise-and-modulation-heteroIapp.yaml --not-shown
-python graphics.py homogeneous-PIRING-with-noise-and-modulation-heteroIapp.npz --export-video
-
+for i in homogeneous-PIRING-without-modulation-or-noise.yaml homogeneous-PIRING-with-noise-no-modulation.yaml homogeneous-PIRING-with-noise-and-modulation.yaml homogeneous-PIRING-with-noise-and-modulation-heteroIapp.yaml heterogeneous-PIRING-with-modulation-and-noise.yaml heterogeneous-PIRING-without-modulation-or-noise.yaml
+do
+    python main.py $i --not-shown
+    python graphics.py ${i%%.yaml}.npz --export-video
+done
